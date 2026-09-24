@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="public/icons/icon-192.png">
 <meta name="theme-color" content="#1b4b66">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="src/styles.css?v=8">
+<link rel="stylesheet" href="src/styles.css?v=9">
 </head>
 <body>
 
@@ -78,6 +78,10 @@
       <button id="locationSearchBtn" type="button"><span id="t-location_search_button">検索</span></button>
     </div>
     <p class="hint" id="locationSearchHint"></p>
+    <button id="pickOnMapBtn" class="pick-on-map-btn" type="button" aria-pressed="false">
+      <span aria-hidden="true">📌</span> <span id="t-pick_on_map">地図で地点を指定</span>
+    </button>
+    <p class="hint" id="pickOnMapHint"></p>
     <div class="save-location-row" id="saveLocationRow" hidden>
       <input type="text" id="saveLocationNameInput" data-i18n-placeholder="save_location_placeholder" placeholder="名前を付けて保存（例：自宅）" maxlength="20">
       <button id="saveLocationBtn" type="button"><span id="t-save_location_button">保存</span></button>
@@ -103,6 +107,10 @@
     <label class="filter-chip accepting-only-chip">
       <input type="checkbox" id="acceptingOnlyCb">
       <span id="t-filter_accepting_only">受入可能のみ表示</span>
+    </label>
+    <label class="filter-chip avoid-hazard-chip">
+      <input type="checkbox" id="avoidAllHazardsCb">
+      <span id="t-avoid_all_hazards">危険エリアを避けたルートにする</span>
     </label>
     <p class="hint" id="locateHint" data-i18n="locating"></p>
     <ul id="shelterList" class="shelter-list"></ul>
@@ -190,6 +198,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="src/routing.js?v=3"></script>
-<script src="src/main.js?v=10"></script>
+<script src="src/main.js?v=12"></script>
 </body>
 </html>

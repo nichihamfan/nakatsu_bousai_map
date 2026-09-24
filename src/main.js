@@ -43,6 +43,10 @@ let selectedShelter = null;
 let activeHazards = new Set(); // 複数レイヤー同時表示に対応
 let activeTypeFilter = new Set(["general", "building", "welfare"]);
 let acceptingOnly = false;
+let avoidAllHazards = false; // 表示中レイヤーに関わらず4種のハザード全てを回避する明示的トグル
+let pickingLocation = false; // 地図クリックで地点を指定するモード中かどうか
+let pickedPoint = null; // 地図クリックで拾った直近の座標（ポップアップのボタンから参照）
+let pickedPointMarker = null; // ピン留め地点（出発地/目的地どちらにも使わなかった場合の一時マーカー）
 
 // 受入状況の表示ラベル・アイコン用キー対応
 const STATUS_KEYS = {
@@ -137,6 +141,59 @@ function initMap() {
   });
 
   shelterMarkersLayer = L.layerGroup().addTo(map);
+
+  map.on("click", onMapClickForPicking);
+}
+
+// GPSが使えない場合の代替として、地図上の任意地点を出発地または目的地に設定できる機能。
+// 「地図で地点を指定」ボタンでピック待機状態にし、次に地図をクリックした地点で
+// ポップアップを開き、出発地/目的地のどちらにするか選ばせる。
+function togglePickLocation() {
+  pickingLocation = !pickingLocation;
+  const btn = document.getElementById("pickOnMapBtn");
+  const hint = document.getElementById("pickOnMapHint");
+  const dict = i18nCache[currentLang] || {};
+  btn.setAttribute("aria-pressed", pickingLocation ? "true" : "false");
+  map.getContainer().style.cursor = pickingLocation ? "crosshair" : "";
+  hint.textContent = pickingLocation ? dict.pick_on_map_hint || "" : "";
+}
+
+function onMapClickForPicking(e) {
+  if (!pickingLocation) return;
+  pickingLocation = false;
+  document.getElementById("pickOnMapBtn").setAttribute("aria-pressed", "false");
+  document.getElementById("pickOnMapHint").textContent = "";
+  map.getContainer().style.cursor = "";
+
+  pickedPoint = { lat: e.latlng.lat, lon: e.latlng.lng };
+  const dict = i18nCache[currentLang] || {};
+
+  const container = document.createElement("div");
+  container.className = "map-pick-popup-actions";
+
+  const originBtn = document.createElement("button");
+  originBtn.type = "button";
+  originBtn.textContent = dict.pick_set_origin || "";
+  originBtn.addEventListener("click", () => {
+    setUserLocation(pickedPoint.lat, pickedPoint.lon);
+    map.closePopup();
+  });
+  container.appendChild(originBtn);
+
+  const destBtn = document.createElement("button");
+  destBtn.type = "button";
+  destBtn.className = "secondary";
+  destBtn.textContent = dict.pick_set_destination || "";
+  destBtn.addEventListener("click", () => {
+    map.closePopup();
+    routeToPoint(pickedPoint.lat, pickedPoint.lon);
+  });
+  container.appendChild(destBtn);
+
+  L.popup({ className: "map-pick-popup" })
+    .setLatLng(e.latlng)
+    .setContent(container)
+    .openOn(map);
 }
 
 function shelterMarkerHtml(type, uncertain, status) {
@@ -592,10 +649,69 @@ async function addHazardLayer(key) {
 // 山間部（耶馬溪・本耶馬渓・山国地域）まで含む広めのバウンディングボックス。
 const NOMINATIM_VIEWBOX = "130.90,33.85,131.55,33.30"; // left,top,right,bottom
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
+const NAKATSU_BBOX = { west: 130.9, south: 33.3, east: 131.55, north: 33.85 };
+
+function inNakatsuBbox(lat, lon) {
+  return lon >= NAKATSU_BBOX.west && lon <= NAKATSU_BBOX.east && lat >= NAKATSU_BBOX.south && lat <= NAKATSU_BBOX.north;
+}
+
+// 国土地理院（GSI）の住所検索API。無料・登録不要。Nominatim（OpenStreetMap）は
+// 「豊田1丁目1番地111」のような日本の住所表記（丁目・番地、全角/半角ハイフン等の
+// 表記ゆれを含む）にほぼ対応できないことが実機検証で判明した（同じ場所を指す
+// 複数の表記を試してもすべて0件だった）。国土地理院のAPIは日本の住居表示・地番
+// データそのものを検索するため、こうした表記ゆれを自然に吸収できる。
+// ただし都道府県・市区町村名を含まないと全国から同名地名を拾ってしまうため、
+// 必ず「中津市」を前置し、かつ返ってきた候補が中津市周辺のバウンディングボックス内に
+// あるものだけを採用する（他都市の同名地区への誤マッチ防止）。
+const GSI_ADDRESS_SEARCH_URL = "https://msearch.gsi.go.jp/address-search/AddressSearch";
+
+async function tryGsiAddressSearch(query) {
+  try {
+    const url = `${GSI_ADDRESS_SEARCH_URL}?q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const results = await res.json();
+    if (!Array.isArray(results)) return null;
+    for (const r of results) {
+      const coords = r.geometry && r.geometry.coordinates;
+      if (!coords) continue;
+      const [lon, lat] = coords;
+      if (inNakatsuBbox(lat, lon)) return { lat, lon };
+    }
+    return null;
+  } catch (e) {
+    console.warn("[gsi geocode] failed", e);
+    return null;
+  }
+}
+
+async function tryNominatimSearch(query) {
+  try {
+    // limit=1だと、importance（重要度）が同点の候補が複数ある場合にNominatim側の
+    // 順序が不安定になり、意図しない候補（例：本庁舎ではなく山間部の支所）が返ることが
+    // 実機検証で判明した。limitを増やして複数候補を取得し、同点上位の中から中津市中心部に
+    // 最も近いものを選ぶことで、この揺れを吸収する。
+    const url = `${NOMINATIM_URL}?format=json&limit=5&bounded=1&viewbox=${NOMINATIM_VIEWBOX}&countrycodes=jp&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const results = await res.json();
+    if (!results || results.length === 0) return null;
+
+    const topImportance = Math.max(...results.map((c) => c.importance || 0));
+    const topCandidates = results.filter((c) => (c.importance || 0) >= topImportance - 1e-9);
+    const r = topCandidates.reduce((best, c) => {
+      const d = haversineKm(NAKATSU_CENTER[0], NAKATSU_CENTER[1], parseFloat(c.lat), parseFloat(c.lon));
+      return d < best.d ? { c, d } : best;
+    }, { c: topCandidates[0], d: Infinity }).c;
+    return { lat: parseFloat(r.lat), lon: parseFloat(r.lon) };
+  } catch (e) {
+    console.warn("[nominatim geocode] failed", e);
+    return null;
+  }
+}
 
 // GPSが使えない場合の代替として、住所・施設名から地点を検索する（他の防災アプリ調査で
 // 「現在地取得不可時の住所検索」が広く提供されていたため追加：全国避難所ガイド等）。
-// 無料・登録不要のOpenStreetMap Nominatimを利用し、サーバーを介さずブラウザから直接検索する。
+// 住所表記（丁目・番地等）は国土地理院APIを優先し、施設名等はNominatimにフォールバックする
+// 2段構えにすることで、双方の得意分野を組み合わせている。
 async function searchLocation(query) {
   const dict = i18nCache[currentLang] || {};
   const hint = document.getElementById("locationSearchHint");
@@ -608,27 +724,20 @@ async function searchLocation(query) {
   btn.disabled = true;
 
   try {
-    // limit=1だと、importance（重要度）が同点の候補が複数ある場合にNominatim側の
-    // 順序が不安定になり、意図しない候補（例：本庁舎ではなく山間部の支所）が返ることが
-    // 実機検証で判明した。limitを増やして複数候補を取得し、同点上位の中から中津市中心部に
-    // 最も近いものを選ぶことで、この揺れを吸収する。
-    const url = `${NOMINATIM_URL}?format=json&limit=5&bounded=1&viewbox=${NOMINATIM_VIEWBOX}&countrycodes=jp&q=${encodeURIComponent(q + " 中津市")}`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
-    const results = await res.json();
+    // 国土地理院APIは都道府県・市区町村→地区→丁目→番地という階層構造で住所を
+    // 解釈するため、「中津市」は先頭に付与する必要がある（末尾に付けると
+    // 全国の同名地区がヒットしてしまうことを実機検証で確認した）。
+    // すでに「中津市」を含む入力の場合は二重に付けない。
+    const gsiQuery = q.includes("中津市") ? q : "中津市" + q;
+    const hit = (await tryGsiAddressSearch(gsiQuery)) || (await tryNominatimSearch(q + " 中津市"));
 
-    if (!results || results.length === 0) {
+    if (!hit) {
       hint.classList.add("error");
       hint.textContent = dict.location_search_not_found || "";
       return;
     }
 
-    const topImportance = Math.max(...results.map((c) => c.importance || 0));
-    const topCandidates = results.filter((c) => (c.importance || 0) >= topImportance - 1e-9);
-    const r = topCandidates.reduce((best, c) => {
-      const d = haversineKm(NAKATSU_CENTER[0], NAKATSU_CENTER[1], parseFloat(c.lat), parseFloat(c.lon));
-      return d < best.d ? { c, d } : best;
-    }, { c: topCandidates[0], d: Infinity }).c;
-    setUserLocation(parseFloat(r.lat), parseFloat(r.lon));
+    setUserLocation(hit.lat, hit.lon);
     hint.classList.remove("error");
     hint.textContent = "";
   } catch (e) {
@@ -752,6 +861,12 @@ function wireEvents() {
     renderShelterList();
   });
 
+  document.getElementById("avoidAllHazardsCb").addEventListener("change", (e) => {
+    avoidAllHazards = e.target.checked;
+  });
+
+  document.getElementById("pickOnMapBtn").addEventListener("click", togglePickLocation);
+
   document.getElementById("checklistBtn").addEventListener("click", openChecklist);
   document.getElementById("closeChecklistBtn").addEventListener("click", () => {
     document.getElementById("checklistModal").hidden = true;
@@ -807,7 +922,60 @@ function clearRoute() {
     map.removeLayer(routeLayer);
     routeLayer = null;
   }
+  if (pickedPointMarker) {
+    map.removeLayer(pickedPointMarker);
+    pickedPointMarker = null;
+  }
   document.getElementById("clearRouteBtn").hidden = true;
+}
+
+// 現在選択中のハザード種別（表示レイヤー）に加え、「危険エリアを避けたルートにする」
+// トグルがONの場合は表示状態に関わらず4種全てを回避対象とする。
+function currentAvoidMask() {
+  let avoidMask = 0;
+  activeHazards.forEach((h) => {
+    avoidMask |= HAZARD_BITS[h] || 0;
+  });
+  if (avoidAllHazards) {
+    avoidMask |= HAZARD_BITS.flood | HAZARD_BITS.sediment | HAZARD_BITS.hightide | HAZARD_BITS.tsunami;
+  }
+  return avoidMask;
+}
+
+async function computeRouteTo(destLat, destLon) {
+  if (!userLocation || !routingGraph.loaded) return null;
+  // UIをブロックしないよう次フレームで計算（同期Dijkstraのため）
+  await new Promise((r) => setTimeout(r, 20));
+  const avoidMask = currentAvoidMask();
+  const t0 = performance.now();
+  const result = routingGraph.route(userLocation.lat, userLocation.lon, destLat, destLon, avoidMask);
+  const elapsed = performance.now() - t0;
+  return { result, elapsed };
+}
+
+function routeResultText(result, elapsed) {
+  const dict = i18nCache[currentLang] || {};
+  const km = (result.distanceM / 1000).toFixed(2);
+  let text = `${dict.routing_distance || ""}: ${km} km （${Math.round(elapsed)}ms）`;
+  if (result.avoided) {
+    text += result.hazardEdgeCount > 0
+      ? ` ／ ${dict.routing_hazard_unavoidable || ""}`
+      : ` ／ ${dict.routing_hazard_avoided || ""}`;
+  }
+  return text;
+}
+
+function drawRouteLayer(result) {
+  clearRoute();
+  routeLayer = L.polyline(result.path, {
+    color: "#009e73",
+    weight: 5,
+    opacity: 0.85,
+    dashArray: "1,8",
+    lineCap: "round",
+  }).addTo(map);
+  map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+  document.getElementById("clearRouteBtn").hidden = false;
 }
 
 async function showRouteToSelected() {
@@ -824,44 +992,49 @@ async function showRouteToSelected() {
   infoEl.hidden = false;
   infoEl.textContent = dict.routing_calculating || "";
 
-  // UIをブロックしないよう次フレームで計算（同期Dijkstraのため）
-  await new Promise((r) => setTimeout(r, 20));
-
-  // 現在選択中のハザード種別を、経路上できるだけ回避する（ソフト回避）
-  let avoidMask = 0;
-  activeHazards.forEach((h) => {
-    avoidMask |= HAZARD_BITS[h] || 0;
-  });
-
-  const t0 = performance.now();
-  const result = routingGraph.route(userLocation.lat, userLocation.lon, selectedShelter.lat, selectedShelter.lon, avoidMask);
-  const elapsed = performance.now() - t0;
+  const { result, elapsed } = await computeRouteTo(selectedShelter.lat, selectedShelter.lon);
 
   if (!result) {
     infoEl.textContent = dict.routing_no_route || "";
     return;
   }
 
-  clearRoute();
-  routeLayer = L.polyline(result.path, {
-    color: "#009e73",
-    weight: 5,
-    opacity: 0.85,
-    dashArray: "1,8",
-    lineCap: "round",
-  }).addTo(map);
-  map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
-  document.getElementById("clearRouteBtn").hidden = false;
-
-  const km = (result.distanceM / 1000).toFixed(2);
-  let text = `${dict.routing_distance || ""}: ${km} km （${Math.round(elapsed)}ms）`;
-  if (result.avoided) {
-    text += result.hazardEdgeCount > 0
-      ? ` ／ ${dict.routing_hazard_unavoidable || ""}`
-      : ` ／ ${dict.routing_hazard_avoided || ""}`;
-  }
-  infoEl.textContent = text;
+  drawRouteLayer(result);
+  infoEl.textContent = routeResultText(result, elapsed);
   document.getElementById("shelterDetail").hidden = true;
+}
+
+// 地図上で指定した任意の地点を目的地としてルート表示する（避難所一覧に無い地点でも
+// 危険性を確認できるようにするための機能）。結果は目的地マーカーに紐づくポップアップで表示する。
+async function routeToPoint(destLat, destLon) {
+  const dict = i18nCache[currentLang] || {};
+
+  if (pickedPointMarker) {
+    map.removeLayer(pickedPointMarker);
+    pickedPointMarker = null;
+  }
+
+  if (!userLocation) {
+    pickedPointMarker = L.marker([destLat, destLon])
+      .addTo(map)
+      .bindPopup(dict.routing_need_location || "")
+      .openPopup();
+    return;
+  }
+  if (!routingGraph.loaded) return;
+
+  const { result, elapsed } = await computeRouteTo(destLat, destLon);
+
+  if (!result) {
+    pickedPointMarker = L.marker([destLat, destLon]).addTo(map).bindPopup(dict.routing_no_route || "").openPopup();
+    return;
+  }
+
+  // drawRouteLayer()内部のclearRoute()がpickedPointMarkerも消してしまうため、
+  // マーカーの作成は必ずdrawRouteLayer()の後で行う。
+  drawRouteLayer(result);
+  pickedPointMarker = L.marker([destLat, destLon]).addTo(map);
+  pickedPointMarker.bindPopup(routeResultText(result, elapsed)).openPopup();
 }
 
 async function loadChecklist() {

@@ -11,7 +11,7 @@
      通信量とオフライン耐性を優先する。
    - 地理院地図タイルは stale-while-revalidate（表示速度とオフライン閲覧の両立）。 */
 
-const CACHE_VERSION = "v15";
+const CACHE_VERSION = "v17";
 const CACHE_NAME = `nakatsu-bousai-${CACHE_VERSION}`;
 
 const NETWORK_FIRST_URLS = [
@@ -94,9 +94,9 @@ self.addEventListener("fetch", (event) => {
   if (req.url.includes("jma.go.jp/bosai/warning/") || req.url.includes("jma.go.jp/bosai/tsunami/")) {
     return;
   }
-  // 住所検索（Nominatim）も同様にキャッシュ対象外とする（クエリ文字列ごとに
-  // キャッシュが際限なく増えるのを防ぎ、常に最新の検索結果を返す）。
-  if (req.url.includes("nominatim.openstreetmap.org")) {
+  // 住所検索（国土地理院API・Nominatim）も同様にキャッシュ対象外とする
+  // （クエリ文字列ごとにキャッシュが際限なく増えるのを防ぎ、常に最新の検索結果を返す）。
+  if (req.url.includes("nominatim.openstreetmap.org") || req.url.includes("msearch.gsi.go.jp")) {
     return;
   }
 
