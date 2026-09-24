@@ -641,6 +641,10 @@ async function searchLocation(query) {
 }
 
 async function toggleHazard(key) {
+  // 想定外のキー（例：ハザードボタン以外の要素が誤って同じセレクタで拾われた場合）で
+  // activeHazardsが汚染されたり、fetch(undefined)のような無駄な通信が発生したりしない
+  // ようにする防御的ガード（2026-09-24、標高ボタンのクラス重複バグの再発防止として追加）。
+  if (!HAZARD_FILES[key] && key !== "none") return;
   if (key === "none") {
     // 「表示しない」は全レイヤーを消すクリア操作
     activeHazards.clear();

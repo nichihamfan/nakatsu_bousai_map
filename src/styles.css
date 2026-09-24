@@ -179,7 +179,24 @@ input:focus-visible,
   border-color:var(--primary);
   color:#fff;
 }
-.relief-btn{border-left:1px solid var(--line);margin-left:2px;padding-left:14px;}
+.relief-btn{
+  /* .hazard-btnと見た目を揃えるが、クラスは意図的に分離している
+     （旧: hazard-btn relief-btn を併用していたところ、
+     document.querySelectorAll(".hazard-btn") がこのボタンも拾ってしまい、
+     クリックのたびに toggleHazard(undefined) が余計に走って
+     activeHazardsが汚染される実害あるバグとなっていた。2026-09-24修正）。 */
+  font-size:0.78125rem;
+  padding:7px 12px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:var(--surface-2);
+  color:var(--ink-soft);
+  cursor:pointer;
+  font-weight:600;
+  border-left:1px solid var(--line);
+  margin-left:2px;
+  padding-left:14px;
+}
 .relief-btn[aria-pressed="true"]{background:#6b5a2a;border-color:#6b5a2a;color:#fff;}
 .locate-btn{
   font-size:0.8125rem;
