@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>受入状況 更新ツール（内部用）</title>
+<style>
+  :root{
+    --ink:#1a2327; --ink-soft:#4b5a60; --paper:#f6f4ef; --surface:#ffffff;
+    --surface-2:#eef1ee; --line:rgba(26,35,39,0.14); --primary:#1b4b66;
+    --primary-2:#2e7d8c; --accent:#e2892f; --ok:#3f8f5f; --warn:#c9871f; --block:#c1443c;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:'Noto Sans JP','Hiragino Sans',system-ui,sans-serif;background:var(--paper);color:var(--ink);margin:0;padding:16px;}
+  h1{font-size:18px;color:var(--primary);margin:0 0 4px;}
+  .lede{font-size:13px;color:var(--ink-soft);margin:0 0 16px;max-width:70ch;}
+  .warn-box{
+    background:#fbe8e6;border:1px solid var(--block);color:var(--block);
+    padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:16px;
+  }
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+  input[type="search"]{
+    flex:1;min-width:200px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);font-size:13px;
+  }
+  select{padding:6px 8px;border-radius:6px;border:1px solid var(--line);font-size:12.5px;}
+  button{
+    font-size:13px;font-weight:700;padding:9px 18px;border-radius:999px;border:none;
+    background:var(--primary);color:#fff;cursor:pointer;
+  }
+  button.secondary{background:var(--surface-2);color:var(--ink);}
+  button:hover{opacity:0.9;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--surface);}
+  th,td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--line);}
+  th{background:var(--primary);color:#fff;position:sticky;top:0;font-size:11.5px;}
+  tr.changed{background:#fff6e8;}
+  .status-select.st-open{background:var(--ok);color:#fff;}
+  .status-select.st-crowded{background:var(--warn);color:#fff;}
+  .status-select.st-full{background:var(--block);color:#fff;}
+  .status-select.st-not_open{background:var(--surface-2);color:var(--ink-soft);}
+  .meta-cell{color:var(--ink-soft);font-size:11px;white-space:nowrap;}
+  .table-wrap{max-height:70vh;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  .count{font-size:12px;color:var(--ink-soft);margin-bottom:8px;}
+  .footer-actions{display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap;}
+  .save-hint{font-size:12px;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<h1>避難所 受入状況 更新ツール（内部用・サーバー不要）</h1>
+<p class="lede">
+  避難所担当者からの報告（電話・無線等）をもとに、このページで受入状況を更新し、
+  「更新後のJSONをダウンロード」で <code>shelter_status.json</code> を書き出してください。
+  書き出したファイルを <code>app/public/data/shelter_status.json</code> に上書きすると、
+  防災マップ本体に反映されます。
+</p>
+<div class="warn-box">
+  ⚠ このページはサーバー・データベースを使わないローカルツールです。複数人が同時に開いても
+  自動では同期されません。更新は一人（防災危機管理課の担当者等）が代表して行う運用を想定しています。
+</div>
+
+<div class="toolbar">
+  <input type="search" id="searchBox" placeholder="避難所名・地区で検索…">
+  <span class="count" id="countLabel"></span>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>避難所名</th>
+        <th>地域／地区</th>
+        <th>種別</th>
+        <th>受入状況</th>
+        <th>最終更新</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<div class="footer-actions">
+  <button id="downloadBtn">更新後のJSONをダウンロード</button>
+  <button class="secondary" id="reloadBtn">元データを再読込（変更を破棄）</button>
+  <span class="save-hint" id="saveHint"></span>
+</div>
+
+<script>
+const TYPE_LABEL = { general: "避難所", building: "避難ビル", welfare: "福祉避難所" };
+const STATUS_LABEL = { not_open: "未開設", open: "開設・受入可", crowded: "混雑", full: "満杯・受入不可" };
+
+let shelters = [];
+let statusMap = {}; // id(string) -> {status, updated_at}
+let dirty = new Set();
+
+async function load() {
+  const [sRes, stRes] = await Promise.all([
+    fetch("public/data/shelters.json"),
+    fetch("public/data/shelter_status.json").catch(() => null),
+  ]);
+  shelters = await sRes.json();
+  statusMap = {};
+  if (stRes && stRes.ok) {
+    const data = await stRes.json();
+    statusMap = data.entries || {};
+  }
+  dirty.clear();
+  document.getElementById("saveHint").textContent = "";
+  render();
+}
+
+function render() {
+  const q = document.getElementById("searchBox").value.trim().toLowerCase();
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  const filtered = shelters.filter((s) => {
+    if (!q) return true;
+    return (s.name + s.region + s.district + s.address).toLowerCase().includes(q);
+  });
+
+  document.getElementById("countLabel").textContent = `${filtered.length} / ${shelters.length} 件`;
+
+  filtered.forEach((s) => {
+    const entry = statusMap[String(s.id)];
+    const currentStatus = entry ? entry.status : "not_open";
+
+    const tr = document.createElement("tr");
+    if (dirty.has(s.id)) tr.classList.add("changed");
+
+    const tdName = document.createElement("td");
+    tdName.textContent = s.name;
+    tr.appendChild(tdName);
+
+    const tdRegion = document.createElement("td");
+    tdRegion.textContent = [s.region, s.district].filter(Boolean).join(" / ");
+    tr.appendChild(tdRegion);
+
+    const tdType = document.createElement("td");
+    tdType.textContent = TYPE_LABEL[s.type] || s.type;
+    tr.appendChild(tdType);
+
+    const tdStatus = document.createElement("td");
+    const select = document.createElement("select");
+    select.className = "status-select st-" + currentStatus;
+    Object.entries(STATUS_LABEL).forEach(([val, label]) => {
+      const opt = document.createElement("option");
+      opt.value = val;
+      opt.textContent = label;
+      if (val === currentStatus) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener("change", () => {
+      const now = new Date().toISOString();
+      if (select.value === "not_open") {
+        delete statusMap[String(s.id)];
+      } else {
+        statusMap[String(s.id)] = { status: select.value, updated_at: now };
+      }
+      dirty.add(s.id);
+      select.className = "status-select st-" + select.value;
+      tr.classList.add("changed");
+      const tdMeta = tr.querySelector(".meta-cell");
+      tdMeta.textContent = select.value === "not_open" ? "-" : new Date(now).toLocaleString("ja-JP");
+      document.getElementById("saveHint").textContent = `${dirty.size} 件を変更しました（未ダウンロード）`;
+    });
+    tdStatus.appendChild(select);
+    tr.appendChild(tdStatus);
+
+    const tdMeta = document.createElement("td");
+    tdMeta.className = "meta-cell";
+    tdMeta.textContent = entry && entry.updated_at ? new Date(entry.updated_at).toLocaleString("ja-JP") : "-";
+    tr.appendChild(tdMeta);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function download() {
+  const out = {
+    generated_note: "中津市防災マップ 避難所受入状況データ（app/admin.html で更新）",
+    entries: statusMap,
+  };
+  const blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "shelter_status.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById("saveHint").textContent = "ダウンロードしました。app/public/data/shelter_status.json を置き換えてください。";
+}
+
+document.getElementById("searchBox").addEventListener("input", render);
+document.getElementById("downloadBtn").addEventListener("click", download);
+document.getElementById("reloadBtn").addEventListener("click", () => {
+  if (dirty.size === 0 || confirm("未保存の変更を破棄して再読込しますか？")) load();
+});
+
+load();
+</script>
+</body>
+</html>

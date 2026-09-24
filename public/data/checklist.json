@@ -1,0 +1,110 @@
+{
+  "source_note": "中津市防災ポータルサイト公式「防災チェックリスト」（防災危機管理課 TEL 0979-22-1113 内線271）を主な出典とし、総務省消防庁「非常用持出品チェックシート」と一般的な防災ガイドラインで補足。高齢者・ペット関連項目は中津市公式リストにない一般的な追加項目。",
+  "categories": [
+    {
+      "id": "daily",
+      "name": { "ja": "生活用品など", "ja-easy": "せいかつの もの", "en": "Daily necessities", "id": "Kebutuhan sehari-hari", "vi": "Nhu yếu phẩm hàng ngày", "my": "နေ့စဉ်လိုအပ်သော ပစ္စည်းများ" },
+      "items": [
+        { "id": "water", "highlight": [], "label": { "ja": "飲料水（1人1日3リットルが目安）", "ja-easy": "のみみず（１にん１にち３リットルくらい）", "en": "Drinking water (approx. 3 liters per person per day)", "id": "Air minum (sekitar 3 liter per orang per hari)", "vi": "Nước uống (khoảng 3 lít/người/ngày)", "my": "သောက်ရေ (တစ်ဦးလျှင် တစ်နေ့ ၃ လီတာခန့်)" } },
+        { "id": "food", "highlight": [], "label": { "ja": "非常食（アルファ化米、缶詰、インスタント食品など）", "ja-easy": "ひじょうしょく（レトルトごはん、かんづめ、カップめんなど）", "en": "Emergency food (instant rice, canned food, instant meals, etc.)", "id": "Makanan darurat (nasi instan, makanan kaleng, dll.)", "vi": "Thực phẩm khẩn cấp (cơm ăn liền, đồ hộp, v.v.)", "my": "အရေးပေါ်အစားအစာ (ချက်ပြုတ်ရန်မလိုသော ထမင်း၊ ဘူးဥစ္စာများ)" } },
+        { "id": "flashlight", "highlight": [], "label": { "ja": "懐中電灯と予備電池", "ja-easy": "かいちゅうでんとうと よびの でんち", "en": "Flashlight and spare batteries", "id": "Senter dan baterai cadangan", "vi": "Đèn pin và pin dự phòng", "my": "လက်ပ်မီးအိမ်နှင့် အရံဘက်ထရီ" } },
+        { "id": "clothes", "highlight": [], "label": { "ja": "衣類・タオル", "ja-easy": "きもの・タオル", "en": "Clothes / towels", "id": "Pakaian / handuk", "vi": "Quần áo / khăn tắm", "my": "အဝတ်အထည် / တဲဟဲလ်ပုဝါ" } },
+        { "id": "gloves", "highlight": [], "label": { "ja": "手袋・軍手", "ja-easy": "てぶくろ", "en": "Gloves (work gloves)", "id": "Sarung tangan (sarung tangan kerja)", "vi": "Găng tay (găng tay bảo hộ)", "my": "လက်အိတ်" } },
+        { "id": "raingear", "highlight": ["flood", "hightide"], "label": { "ja": "雨具（レインコートなど）", "ja-easy": "あまぐ（レインコートなど）", "en": "Rain gear (raincoat, etc.)", "id": "Perlengkapan hujan (jas hujan, dll.)", "vi": "Đồ đi mưa (áo mưa, v.v.)", "my": "မိုးကာဝတ်စုံ (မိုးကာအင်္ကျီစသည်)" } },
+        { "id": "socks_shoes", "highlight": ["flood", "hightide"], "label": { "ja": "厚手の靴下・靴（紐でしっかり固定できるもの）", "ja-easy": "あつい くつした・くつ（ひもで しっかり むすべるもの）", "en": "Thick socks / sturdy lace-up shoes", "id": "Kaus kaki tebal / sepatu bertali yang kokoh", "vi": "Tất dày / giày buộc dây chắc chắn", "my": "အထူထည့် ခြေအိတ်/ကြိုးဖြင့်ချည်နိုင်သော ဖိနပ်" } },
+        { "id": "tissue", "highlight": [], "label": { "ja": "ティッシュ（ウエットティッシュ）", "ja-easy": "ティッシュ（ぬれた ティッシュも）", "en": "Tissues (including wet wipes)", "id": "Tisu (termasuk tisu basah)", "vi": "Khăn giấy (kể cả khăn ướt)", "my": "တစ်ရှူး (စွတ်တစ်ရှူးအပါအဝင်)" } },
+        { "id": "mask", "highlight": [], "label": { "ja": "マスク", "ja-easy": "マスク", "en": "Masks", "id": "Masker", "vi": "Khẩu trang", "my": "မျက်နှာဖုံး" } },
+        { "id": "lighter", "highlight": [], "label": { "ja": "マッチまたはライター", "ja-easy": "マッチか ライター", "en": "Matches or lighter", "id": "Korek api atau pematik", "vi": "Diêm hoặc bật lửa", "my": "မီးခြစ် သို့မဟုတ် မီးရှို့စက်" } },
+        { "id": "candle", "highlight": [], "label": { "ja": "ローソク", "ja-easy": "ろうそく", "en": "Candles", "id": "Lilin", "vi": "Nến", "my": "ဖယောင်းတိုင်" } },
+        { "id": "medicine", "highlight": [], "label": { "ja": "医薬品（常備薬を含む）", "ja-easy": "くすり（いつも のんでいる くすりも）", "en": "Medicine (including regular medication)", "id": "Obat-obatan (termasuk obat rutin)", "vi": "Thuốc men (kể cả thuốc đang dùng)", "my": "ဆေးဝါးများ (ပုံမှန်သုံးဆေးအပါအဝင်)" } },
+        { "id": "thermal_sheet", "highlight": [], "label": { "ja": "アルミ製保温シート", "ja-easy": "あたたかさを たもつ シート", "en": "Emergency thermal blanket (foil sheet)", "id": "Selimut termal darurat (lembar foil)", "vi": "Chăn giữ nhiệt khẩn cấp (tấm bạc)", "my": "အပူချိန်ထိန်း အလူမီနီယမ်ခင်း" } },
+        { "id": "vinyl_sheet", "highlight": [], "label": { "ja": "厚手のビニールシート", "ja-easy": "あつい ビニールシート", "en": "Heavy-duty plastic sheet", "id": "Terpal plastik tebal", "vi": "Tấm nhựa dày", "my": "အထူထည့် ပလတ်စတစ်ခင်း" } },
+        { "id": "paper_dish", "highlight": [], "label": { "ja": "紙食器", "ja-easy": "かみの おさら", "en": "Paper plates/dishes", "id": "Piring kertas", "vi": "Bát đĩa giấy", "my": "စက္ကူပန်းကန်" } },
+        { "id": "wrap", "highlight": [], "label": { "ja": "台所用ラップ", "ja-easy": "ラップ", "en": "Plastic food wrap", "id": "Plastik pembungkus makanan", "vi": "Màng bọc thực phẩm", "my": "အစားအစာထုပ်ရန် ပလတ်စတစ်စာ" } },
+        { "id": "multitool", "highlight": [], "label": { "ja": "万能ナイフ", "ja-easy": "べんりな ナイフ", "en": "Multi-tool knife", "id": "Pisau multifungsi", "vi": "Dao đa năng", "my": "အသုံးများပြားသော ဓား" } },
+        { "id": "helmet", "highlight": ["earthquake", "sediment"], "label": { "ja": "ヘルメット", "ja-easy": "ヘルメット", "en": "Helmet", "id": "Helm", "vi": "Mũ bảo hiểm", "my": "ဦးထုပ်" } },
+        { "id": "whistle", "highlight": ["earthquake", "sediment"], "label": { "ja": "笛（救助を求める時に使用）", "ja-easy": "ふえ（たすけを よぶ とき つかう）", "en": "Whistle (to call for help)", "id": "Peluit (untuk memanggil bantuan)", "vi": "Còi (để kêu cứu)", "my": "ဝီစီလ် (အကူအညီတောင်းရန်)" } },
+        { "id": "formula", "highlight": [], "household": ["infant"], "label": { "ja": "粉ミルクと紙オムツ（乳幼児がいる家庭）", "ja-easy": "こなミルクと かみおむつ（あかちゃんが いる いえ）", "en": "Baby formula and diapers (households with infants)", "id": "Susu formula bayi dan popok (keluarga dengan bayi)", "vi": "Sữa bột và tã giấy (gia đình có trẻ sơ sinh)", "my": "နို့မှုန့်နှင့် ကလေးအနှီးစုတ် (ကလေးငယ်ရှိသောအိမ်ထောင်စု)" } },
+        { "id": "toy", "highlight": [], "household": ["child"], "label": { "ja": "使い慣れたおもちゃ（子どもがいる家庭）", "ja-easy": "いつもの おもちゃ（こどもが いる いえ）", "en": "Familiar toy (households with children)", "id": "Mainan favorit (keluarga dengan anak-anak)", "vi": "Đồ chơi quen thuộc (gia đình có trẻ em)", "my": "ရင်းနှီးသော ကစားစရာ (ကလေးရှိသောအိမ်ထောင်စု)" } }
+      ]
+    },
+    {
+      "id": "valuables",
+      "name": { "ja": "貴重品", "ja-easy": "だいじな もの", "en": "Valuables", "id": "Barang berharga", "vi": "Vật có giá trị", "my": "တန်ဖိုးရှိပစ္စည်းများ" },
+      "items": [
+        { "id": "cash", "highlight": [], "label": { "ja": "現金（小銭を含む）", "ja-easy": "おかね（こぜにも）", "en": "Cash (including coins)", "id": "Uang tunai (termasuk uang receh)", "vi": "Tiền mặt (kể cả tiền xu)", "my": "ငွေသား (အကြွေစေ့အပါအဝင်)" } },
+        { "id": "id_card", "highlight": [], "label": { "ja": "身分証明書", "ja-easy": "みぶんしょうめいしょ", "en": "ID card", "id": "Kartu identitas", "vi": "Giấy tờ tùy thân", "my": "မှတ်ပုံတင်" } },
+        { "id": "seal", "highlight": [], "label": { "ja": "印鑑", "ja-easy": "はんこ", "en": "Personal seal (inkan)", "id": "Stempel pribadi (inkan)", "vi": "Con dấu cá nhân (inkan)", "my": "တံဆိပ်" } },
+        { "id": "bankbook", "highlight": [], "label": { "ja": "預金通帳", "ja-easy": "ぎんこうの つうちょう", "en": "Bank passbook", "id": "Buku tabungan bank", "vi": "Sổ tiết kiệm ngân hàng", "my": "ဘဏ်စာအုပ်" } },
+        { "id": "health_ins", "highlight": [], "label": { "ja": "健康保険証", "ja-easy": "けんこうほけんしょう", "en": "Health insurance card", "id": "Kartu asuransi kesehatan", "vi": "Thẻ bảo hiểm y tế", "my": "ကျန်းမာရေးအာမခံကတ်" } }
+      ]
+    },
+    {
+      "id": "info",
+      "name": { "ja": "情報収集用品", "ja-easy": "じょうほうを あつめる どうぐ", "en": "Information tools", "id": "Alat pengumpul informasi", "vi": "Thiết bị thu thập thông tin", "my": "သတင်းအချက်အလက်ရယူရန်ပစ္စည်းများ" },
+      "items": [
+        { "id": "radio", "highlight": [], "label": { "ja": "携帯ラジオ", "ja-easy": "もちはこべる ラジオ", "en": "Portable radio", "id": "Radio portabel", "vi": "Radio cầm tay", "my": "သယ်ဆောင်နိုင်သော ရေဒီယို" } },
+        { "id": "phone_charger", "highlight": [], "label": { "ja": "携帯電話と充電器（モバイルバッテリー）", "ja-easy": "けいたいでんわと じゅうでんき", "en": "Mobile phone and charger (power bank)", "id": "Ponsel dan pengisi daya (power bank)", "vi": "Điện thoại di động và sạc (pin dự phòng)", "my": "မိုဘိုင်းဖုန်းနှင့် အားသွင်းကိရိယာ" } },
+        { "id": "writing", "highlight": [], "label": { "ja": "筆記用具", "ja-easy": "かく もの（ペンなど）", "en": "Writing supplies", "id": "Alat tulis", "vi": "Đồ dùng viết", "my": "စာရေးကိရိယာများ" } },
+        { "id": "map", "highlight": [], "label": { "ja": "防災マップ", "ja-easy": "ぼうさい マップ", "en": "Disaster prevention map", "id": "Peta kebencanaan", "vi": "Bản đồ phòng chống thiên tai", "my": "ဘေးအန္တရာယ်ကြိုတင်ကာကွယ်ရေးမြေပုံ" } },
+        { "id": "coins", "highlight": [], "label": { "ja": "電話用の小銭（10円玉。公衆電話用）", "ja-easy": "でんわ よう の こぜに（１０えんだま）", "en": "Coins for pay phones (10-yen coins)", "id": "Uang koin untuk telepon umum (koin 10 yen)", "vi": "Tiền xu để gọi điện thoại công cộng", "my": "အများသုံးဖုန်းအတွက် အကြွေစေ့" } }
+      ]
+    },
+    {
+      "id": "useful",
+      "name": { "ja": "防災用にあると便利な物", "ja-easy": "あると べんりな もの", "en": "Useful to have", "id": "Berguna untuk dimiliki", "vi": "Hữu ích khi có", "my": "ရှိထားလျှင်အသုံးဝင်သောပစ္စည်းများ" },
+      "items": [
+        { "id": "crowbar", "highlight": ["earthquake"], "label": { "ja": "バール", "ja-easy": "バール（てこの どうぐ）", "en": "Crowbar", "id": "Linggis", "vi": "Xà beng", "my": "သံချောင်း" } },
+        { "id": "saw", "highlight": [], "label": { "ja": "のこぎり", "ja-easy": "のこぎり", "en": "Saw", "id": "Gergaji", "vi": "Cưa", "my": "လွှ" } },
+        { "id": "hammer", "highlight": [], "label": { "ja": "かなづち", "ja-easy": "かなづち", "en": "Hammer", "id": "Palu", "vi": "Búa", "my": "သံတူ" } },
+        { "id": "ladder", "highlight": [], "label": { "ja": "はしご", "ja-easy": "はしご", "en": "Ladder", "id": "Tangga", "vi": "Thang", "my": "လှေကား" } },
+        { "id": "jack", "highlight": ["earthquake"], "label": { "ja": "ジャッキ", "ja-easy": "ジャッキ", "en": "Jack (lifting tool)", "id": "Dongkrak", "vi": "Kích nâng", "my": "မော်စက်" } },
+        { "id": "extinguisher", "highlight": ["earthquake"], "label": { "ja": "消火器", "ja-easy": "しょうかき", "en": "Fire extinguisher", "id": "Alat pemadam kebakaran", "vi": "Bình chữa cháy", "my": "မီးငြိမ်းသတ်ကိရိယာ" } },
+        { "id": "bucket", "highlight": [], "label": { "ja": "バケツ", "ja-easy": "バケツ", "en": "Bucket", "id": "Ember", "vi": "Xô", "my": "ပုံး" } },
+        { "id": "shovel", "highlight": ["sediment"], "label": { "ja": "スコップ", "ja-easy": "スコップ", "en": "Shovel", "id": "Sekop", "vi": "Xẻng", "my": "တူးရွင်း" } },
+        { "id": "rope", "highlight": ["flood", "sediment"], "label": { "ja": "ロープ", "ja-easy": "ロープ", "en": "Rope", "id": "Tali", "vi": "Dây thừng", "my": "ကြိုး" } }
+      ]
+    },
+    {
+      "id": "stockpile",
+      "name": { "ja": "備蓄しておくとよいもの", "ja-easy": "たくわえておく もの", "en": "Good to stockpile", "id": "Baik untuk disimpan", "vi": "Nên dự trữ", "my": "သိုလှောင်ထားသင့်သည့်ပစ္စည်းများ" },
+      "items": [
+        { "id": "blanket", "highlight": [], "label": { "ja": "毛布", "ja-easy": "もうふ", "en": "Blanket", "id": "Selimut", "vi": "Chăn", "my": "စောင်" } },
+        { "id": "poly_tank", "highlight": [], "label": { "ja": "ポリタンク", "ja-easy": "みずを いれる タンク", "en": "Water container (poly tank)", "id": "Jerigen air", "vi": "Bình chứa nước", "my": "ရေသိုလှောင်ဘူး" } },
+        { "id": "underwear", "highlight": [], "label": { "ja": "下着", "ja-easy": "したぎ", "en": "Underwear", "id": "Pakaian dalam", "vi": "Đồ lót", "my": "အတွင်းခံ" } },
+        { "id": "rice_cooker", "highlight": [], "label": { "ja": "炊飯用具", "ja-easy": "ごはんを たく どうぐ", "en": "Rice-cooking equipment", "id": "Peralatan memasak nasi", "vi": "Dụng cụ nấu cơm", "my": "ထမင်းချက်ကိရိယာ" } },
+        { "id": "tent", "highlight": [], "label": { "ja": "テントや寝袋", "ja-easy": "テントや ねぶくろ", "en": "Tent or sleeping bag", "id": "Tenda atau kantong tidur", "vi": "Lều hoặc túi ngủ", "my": "တဲ သို့မဟုတ် အိပ်ရာအိတ်" } },
+        { "id": "simple_toilet", "highlight": [], "label": { "ja": "簡易トイレ", "ja-easy": "かんたんな トイレ", "en": "Portable toilet", "id": "Toilet portabel darurat", "vi": "Nhà vệ sinh di động", "my": "ယာယီအိမ်သာ" } },
+        { "id": "sanitary", "highlight": [], "label": { "ja": "生理用品", "ja-easy": "せいりようひん", "en": "Sanitary products", "id": "Produk kebersihan wanita", "vi": "Băng vệ sinh", "my": "မိန်းကလေးသုံးပစ္စည်း" } },
+        { "id": "tape", "highlight": [], "label": { "ja": "ガムテープ", "ja-easy": "ガムテープ", "en": "Duct tape", "id": "Lakban", "vi": "Băng dính", "my": "တိပ်" } },
+        { "id": "table_stove", "highlight": [], "label": { "ja": "卓上コンロ", "ja-easy": "テーブルの うえで つかう コンロ", "en": "Portable gas stove", "id": "Kompor portabel", "vi": "Bếp gas mini", "my": "စားပွဲပေါ်ထိုင်မီးဖို" } },
+        { "id": "soap", "highlight": [], "label": { "ja": "石鹸", "ja-easy": "せっけん", "en": "Soap", "id": "Sabun", "vi": "Xà phòng", "my": "ဆပ်ပြာ" } },
+        { "id": "shampoo", "highlight": [], "label": { "ja": "シャンプー（水を使わないもの）", "ja-easy": "シャンプー（みずを つかわない もの）", "en": "Dry shampoo (no water needed)", "id": "Sampo kering (tanpa air)", "vi": "Dầu gội khô (không cần nước)", "my": "ရေမလိုအပ်သောခေါင်းလျှော်ရည်" } },
+        { "id": "warmer", "highlight": [], "label": { "ja": "使い捨てカイロ", "ja-easy": "つかいすての カイロ", "en": "Disposable heat packs", "id": "Kantong penghangat sekali pakai", "vi": "Túi sưởi dùng một lần", "my": "တစ်ကြိမ်သုံးအပူပေးအိတ်" } }
+      ]
+    },
+    {
+      "id": "elderly",
+      "optionalHousehold": "elderly",
+      "name": { "ja": "高齢者がいる場合に（追加）", "ja-easy": "おとしよりが いる ときは（ついか）", "en": "If you have elderly family members (additional)", "id": "Jika ada lansia dalam keluarga (tambahan)", "vi": "Nếu có người cao tuổi trong gia đình (bổ sung)", "my": "သက်ကြီးရွယ်အိုရှိပါက (ထပ်တိုး)" },
+      "items": [
+        { "id": "regular_medicine", "highlight": [], "label": { "ja": "お薬手帳・常備薬の控え", "ja-easy": "くすりの てちょう・いつもの くすり", "en": "Medication notebook / spare regular medicine", "id": "Buku catatan obat / cadangan obat rutin", "vi": "Sổ theo dõi thuốc / thuốc dự phòng", "my": "ဆေးမှတ်စာအုပ်/ပုံမှန်ဆေးအရံ" } },
+        { "id": "cane", "highlight": [], "label": { "ja": "杖・歩行補助具", "ja-easy": "つえ", "en": "Cane / walking aid", "id": "Tongkat / alat bantu jalan", "vi": "Gậy / dụng cụ hỗ trợ đi lại", "my": "တောင်ဝှေး/လမ်းလျှောက်အထောက်အကူ" } },
+        { "id": "dentures", "highlight": [], "label": { "ja": "入れ歯・洗浄剤", "ja-easy": "いれば・せんじょうざい", "en": "Dentures / cleaning solution", "id": "Gigi palsu / larutan pembersih", "vi": "Răng giả / dung dịch vệ sinh", "my": "သွားတု/ဆေးကြောရည်" } },
+        { "id": "reading_glasses", "highlight": [], "label": { "ja": "老眼鏡", "ja-easy": "ろうがんきょう", "en": "Reading glasses", "id": "Kacamata baca", "vi": "Kính lão", "my": "မျက်မှန်" } },
+        { "id": "adult_diaper", "highlight": [], "label": { "ja": "大人用紙おむつ", "ja-easy": "おとなの かみおむつ", "en": "Adult diapers", "id": "Popok dewasa", "vi": "Tã người lớn", "my": "လူကြီးသုံးအနှီးစုတ်" } }
+      ]
+    },
+    {
+      "id": "pet",
+      "optionalHousehold": "pet",
+      "name": { "ja": "ペットがいる場合に（追加）", "ja-easy": "ペットが いる ときは（ついか）", "en": "If you have pets (additional)", "id": "Jika memiliki hewan peliharaan (tambahan)", "vi": "Nếu có thú cưng (bổ sung)", "my": "အိမ်မွေးတိရစ္ဆာန်ရှိပါက (ထပ်တိုး)" },
+      "items": [
+        { "id": "pet_food", "highlight": [], "label": { "ja": "ペットフード・水", "ja-easy": "ペットの たべものと みず", "en": "Pet food and water", "id": "Makanan dan air untuk hewan peliharaan", "vi": "Thức ăn và nước cho thú cưng", "my": "အိမ်မွေးတိရစ္ဆာန်အစားအစာနှင့်ရေ" } },
+        { "id": "pet_leash", "highlight": [], "label": { "ja": "リード・キャリーバッグ", "ja-easy": "リード・はこぶ かばん", "en": "Leash / carrier bag", "id": "Tali kekang / tas pembawa", "vi": "Dây dắt / túi vận chuyển", "my": "ကြိုးနှင့်သယ်ဆောင်အိတ်" } },
+        { "id": "pet_tag", "highlight": [], "label": { "ja": "迷子札・鑑札", "ja-easy": "めいごふだ", "en": "ID tag / registration tag", "id": "Tanda pengenal / tanda registrasi", "vi": "Thẻ tên / thẻ đăng ký", "my": "အမှတ်တံဆိပ်" } },
+        { "id": "pet_toilet", "highlight": [], "label": { "ja": "ペット用トイレ用品", "ja-easy": "ペットの トイレようひん", "en": "Pet toilet supplies", "id": "Perlengkapan toilet hewan peliharaan", "vi": "Dụng cụ vệ sinh cho thú cưng", "my": "အိမ်မွေးတိရစ္ဆာန်အိမ်သာသုံးပစ္စည်း" } }
+      ]
+    }
+  ]
+}

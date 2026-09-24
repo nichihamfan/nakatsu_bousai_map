@@ -1,0 +1,16 @@
+{
+  "name": "中津市防災マップ",
+  "short_name": "中津防災",
+  "description": "中津市の現在地表示・ハザードマップ・避難所検索・経路案内をオフラインでも使える防災アプリ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f4ef",
+  "theme_color": "#1b4b66",
+  "lang": "ja",
+  "icons": [
+    { "src": "public/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "public/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "public/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

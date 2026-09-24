@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>中津市防災マップ（PoC）</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="public/icons/icon-192.png">
+<link rel="apple-touch-icon" href="public/icons/icon-192.png">
+<meta name="theme-color" content="#1b4b66">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="src/styles.css?v=7">
+</head>
+<body>
+
+<div id="offlineBadge" class="offline-badge" hidden>
+  <span aria-hidden="true">⚡</span> <span id="t-offline_badge">オフライン（キャッシュ表示中）</span>
+</div>
+
+<div id="warningBanner" class="warning-banner" hidden role="alert">
+  <div class="warning-banner-text" id="warningBannerText"></div>
+  <div class="warning-banner-actions">
+    <button id="warningOpenChecklistBtn" class="warning-banner-btn" hidden><span id="t-warning_open_checklist">避難用品リストを開く</span></button>
+    <button id="warningBannerCloseBtn" class="warning-banner-close" aria-label="閉じる">×</button>
+  </div>
+</div>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">⚠</span>
+    <h1 id="t-app_title">中津市防災マップ</h1>
+  </div>
+  <div class="header-controls">
+    <div class="text-size-control" role="group" aria-label="text size">
+      <button id="textSizeDownBtn" class="text-size-btn" aria-label="文字を小さくする" type="button">A-</button>
+      <button id="textSizeUpBtn" class="text-size-btn" aria-label="文字を大きくする" type="button">A+</button>
+    </div>
+    <label class="lang-select">
+      <span class="sr-only" id="t-language">言語</span>
+      <select id="langPicker" aria-label="言語選択">
+        <option value="ja">日本語</option>
+        <option value="ja-easy">やさしい にほんご</option>
+        <option value="en">English</option>
+        <option value="id">Bahasa Indonesia</option>
+        <option value="vi">Tiếng Việt</option>
+        <option value="my">မြန်မာဘာသာ</option>
+      </select>
+    </label>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="hazard-select" role="group" aria-label="hazard type">
+    <button class="hazard-btn" data-hazard="none" aria-pressed="true"><span id="t-hazard_none">表示しない</span></button>
+    <button class="hazard-btn" data-hazard="flood"><span id="t-hazard_flood">洪水</span></button>
+    <button class="hazard-btn" data-hazard="sediment"><span id="t-hazard_sediment">土砂災害</span></button>
+    <button class="hazard-btn" data-hazard="hightide"><span id="t-hazard_hightide">高潮</span></button>
+    <button class="hazard-btn" data-hazard="tsunami"><span id="t-hazard_tsunami">津波</span></button>
+    <button id="reliefToggleBtn" class="hazard-btn relief-btn" type="button" aria-pressed="false">
+      <span aria-hidden="true">⛰</span> <span id="t-relief_toggle">標高で色分け</span>
+    </button>
+  </div>
+  <button id="locateBtn" class="locate-btn">
+    <span aria-hidden="true">📍</span> <span id="t-locate_me">現在地を表示</span>
+  </button>
+  <button id="checklistBtn" class="checklist-btn">
+    <span aria-hidden="true">🎒</span> <span id="t-checklist_button">持出品チェックリスト</span>
+  </button>
+</div>
+
+<main class="layout">
+  <div id="map"></div>
+
+  <aside id="sidePanel" class="side-panel">
+    <h2 id="t-nearest_shelters">最寄りの避難所</h2>
+    <div class="location-search">
+      <input type="text" id="locationSearchInput" data-i18n-placeholder="location_search_placeholder" placeholder="住所・施設名で検索">
+      <button id="locationSearchBtn" type="button"><span id="t-location_search_button">検索</span></button>
+    </div>
+    <p class="hint" id="locationSearchHint"></p>
+    <div class="save-location-row" id="saveLocationRow" hidden>
+      <input type="text" id="saveLocationNameInput" data-i18n-placeholder="save_location_placeholder" placeholder="名前を付けて保存（例：自宅）" maxlength="20">
+      <button id="saveLocationBtn" type="button"><span id="t-save_location_button">保存</span></button>
+    </div>
+    <div class="saved-locations" id="savedLocationsSection" hidden>
+      <div class="saved-locations-label" id="t-saved_locations_label">保存済みの出発地</div>
+      <div class="saved-locations-list" id="savedLocationsList"></div>
+    </div>
+    <div class="type-filter" role="group" aria-label="shelter type filter">
+      <label class="filter-chip">
+        <input type="checkbox" class="type-filter-cb" value="general" checked>
+        <span class="dot dot-general"></span><span id="t-shelter_type_general_f">避難所</span>
+      </label>
+      <label class="filter-chip">
+        <input type="checkbox" class="type-filter-cb" value="building" checked>
+        <span class="dot dot-building"></span><span id="t-shelter_type_building_f">避難ビル</span>
+      </label>
+      <label class="filter-chip">
+        <input type="checkbox" class="type-filter-cb" value="welfare" checked>
+        <span class="dot dot-welfare"></span><span id="t-shelter_type_welfare_f">福祉避難所</span>
+      </label>
+    </div>
+    <label class="filter-chip accepting-only-chip">
+      <input type="checkbox" id="acceptingOnlyCb">
+      <span id="t-filter_accepting_only">受入可能のみ表示</span>
+    </label>
+    <p class="hint" id="locateHint" data-i18n="locating"></p>
+    <ul id="shelterList" class="shelter-list"></ul>
+  </aside>
+</main>
+
+<div id="legend" class="legend">
+  <h3 id="t-legend">凡例</h3>
+  <div class="legend-row"><span class="dot dot-general"></span><span id="t-shelter_type_general">避難所</span></div>
+  <div class="legend-row"><span class="dot dot-building"></span><span id="t-shelter_type_building">避難ビル</span></div>
+  <div class="legend-row"><span class="dot dot-welfare"></span><span id="t-shelter_type_welfare">福祉避難所</span></div>
+  <div class="legend-row"><span class="dot dot-uncertain"></span><span id="t-geocode_uncertain">この位置は概算です</span></div>
+  <div class="legend-divider"></div>
+  <div class="legend-row"><span class="ring ring-open"></span><span id="t-status_open_f">開設・受入可</span></div>
+  <div class="legend-row"><span class="ring ring-crowded"></span><span id="t-status_crowded_f">混雑（残りわずか）</span></div>
+  <div class="legend-row"><span class="ring ring-full"></span><span id="t-status_full_f">満杯・受入不可</span></div>
+  <div id="reliefLegend" class="relief-legend" hidden>
+    <div class="legend-divider"></div>
+    <div class="relief-legend-title" id="t-relief_legend_title">標高（色別標高図）</div>
+    <div class="relief-legend-bar"></div>
+    <div class="relief-legend-scale">
+      <span>0m</span><span>100m</span><span>300m</span><span>1000m+</span>
+    </div>
+    <p class="relief-legend-caveat" id="t-relief_caveat">参考情報です。実際の浸水範囲を示すものではありません。</p>
+  </div>
+  <button id="clearRouteBtn" class="clear-route-btn" hidden><span id="t-clear_route">ルートを消去</span></button>
+</div>
+
+<div id="caveatModal" class="modal" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <h2 id="t-data_caveat_title">ご利用にあたっての注意</h2>
+    <p id="t-data_caveat_body">このマップは試作版（PoC）です。避難所の位置情報の一部は概算です。実際の避難行動は必ず中津市の公式な防災情報・指示に従ってください。</p>
+    <p id="t-status_demo_note" class="uncertain-note">このデータはサンプルです（実際の開設状況ではありません）</p>
+    <button id="closeModalBtn" class="primary-btn"><span id="t-close">閉じる</span></button>
+  </div>
+</div>
+
+<div id="shelterDetail" class="modal" hidden>
+  <div class="modal-card">
+    <h2 id="detailName"></h2>
+    <p><strong id="t-address">所在地</strong>: <span id="detailAddress"></span></p>
+    <p id="detailEvacRow"><strong id="t-evac_location">避難場所</strong>: <span id="detailEvac"></span></p>
+    <p id="detailCapRow"><strong id="t-capacity">収容人数</strong>: <span id="detailCap"></span></p>
+    <p id="detailStatusRow"><strong id="t-status_label">受入状況</strong>: <span id="detailStatusBadge" class="status-badge"></span></p>
+    <p id="detailStatusMeta" class="status-meta" hidden></p>
+    <p id="detailSuggestAlt" class="route-info suggest-alt" hidden></p>
+    <p id="detailUncertainRow" class="uncertain-note"><span id="t-geocode_uncertain2">この位置は概算です</span></p>
+    <p id="detailRouteInfo" class="route-info" hidden></p>
+    <div class="modal-actions">
+      <button id="showRouteBtn" class="primary-btn"><span id="t-show_route">ここへのルートを表示</span></button>
+      <button class="primary-btn" onclick="document.getElementById('shelterDetail').hidden=true"><span id="t-close2">閉じる</span></button>
+    </div>
+  </div>
+</div>
+
+<div id="checklistModal" class="modal" hidden>
+  <div class="modal-card checklist-card">
+    <div class="checklist-header">
+      <h2 id="t-checklist_title">避難用品チェックリスト</h2>
+      <button class="primary-btn" id="closeChecklistBtn"><span id="t-close_f">閉じる</span></button>
+    </div>
+
+    <div class="checklist-progress-wrap">
+      <div class="checklist-progress-bar"><div id="checklistProgressFill" class="checklist-progress-fill"></div></div>
+      <span id="checklistProgressText" class="checklist-progress-text"></span>
+    </div>
+
+    <fieldset class="household-filter">
+      <legend id="t-checklist_household_label">世帯構成（あてはまるものを選択）</legend>
+      <label class="filter-chip"><input type="checkbox" class="household-cb" value="infant"><span id="t-household_infant">乳幼児がいる</span></label>
+      <label class="filter-chip"><input type="checkbox" class="household-cb" value="child"><span id="t-household_child">子どもがいる</span></label>
+      <label class="filter-chip"><input type="checkbox" class="household-cb" value="elderly"><span id="t-household_elderly">高齢者がいる</span></label>
+      <label class="filter-chip"><input type="checkbox" class="household-cb" value="pet"><span id="t-household_pet">ペットがいる</span></label>
+    </fieldset>
+
+    <div id="checklistBody" class="checklist-body"></div>
+
+    <p id="checklistSourceNote" class="checklist-source"></p>
+  </div>
+</div>
+
+<footer class="app-footer">
+  <span id="t-footer_note">収集データ出典：中津市防災ポータルサイト／国土数値情報（国土交通省）</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="src/routing.js?v=3"></script>
+<script src="src/main.js?v=9"></script>
+</body>
+</html>
