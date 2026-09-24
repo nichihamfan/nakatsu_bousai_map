@@ -9,7 +9,7 @@
   "hazard_tsunami": "つなみ",
   "hazard_none": "ひょうじしない",
   "relief_toggle": "たかさで いろを かえる",
-  "relief_legend_title": "たかさ（いろわけ ちず）",
+  "relief_legend_title": "たかさ（ひくい ところを よく みえる ように した いろわけ）",
   "relief_caveat": "さんこうの じょうほうです。ほんとうに みずが くる ところとは ちがいます。",
   "pick_on_map": "ちずで ばしょを えらぶ",
   "pick_on_map_hint": "ちずを タップして ばしょを えらんでください",

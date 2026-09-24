@@ -9,7 +9,7 @@
   "hazard_tsunami": "Tsunami",
   "hazard_none": "Hide layer",
   "relief_toggle": "Color by elevation",
-  "relief_legend_title": "Elevation (colored relief map)",
+  "relief_legend_title": "Elevation (scale emphasizes low ground)",
   "relief_caveat": "For reference only. Does not show actual flood extent.",
   "pick_on_map": "Pick a point on the map",
   "pick_on_map_hint": "Click on the map to choose a point",

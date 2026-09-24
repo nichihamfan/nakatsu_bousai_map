@@ -453,7 +453,8 @@ input:focus-visible,
 .relief-legend-bar{
   height:10px;
   border-radius:4px;
-  background:linear-gradient(to right,#35a163,#c9d34a,#eddd6e,#e08a3c,#a13a1f);
+  /* 凡例の0m/5m/10m/20m/50m+ ラベル位置に対応（main.jsのELEVATION_COLOR_STOPSと整合） */
+  background:linear-gradient(to right,#7b0064,#c51b52,#ef3b2c,#fd8d3c,#fec44f,#fee391,#d9ef8b,#ade28e);
   border:1px solid var(--line);
 }
 .relief-legend-scale{

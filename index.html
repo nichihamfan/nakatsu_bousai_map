@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="public/icons/icon-192.png">
 <meta name="theme-color" content="#1b4b66">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="src/styles.css?v=9">
+<link rel="stylesheet" href="src/styles.css?v=10">
 </head>
 <body>
 
@@ -129,10 +129,10 @@
   <div class="legend-row"><span class="ring ring-full"></span><span id="t-status_full_f">満杯・受入不可</span></div>
   <div id="reliefLegend" class="relief-legend" hidden>
     <div class="legend-divider"></div>
-    <div class="relief-legend-title" id="t-relief_legend_title">標高（色別標高図）</div>
+    <div class="relief-legend-title" id="t-relief_legend_title">標高（低地を重視した色分け）</div>
     <div class="relief-legend-bar"></div>
     <div class="relief-legend-scale">
-      <span>0m</span><span>100m</span><span>300m</span><span>1000m+</span>
+      <span>0m</span><span>5m</span><span>10m</span><span>20m</span><span>50m+</span>
     </div>
     <p class="relief-legend-caveat" id="t-relief_caveat">参考情報です。実際の浸水範囲を示すものではありません。</p>
   </div>
@@ -198,6 +198,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="src/routing.js?v=3"></script>
-<script src="src/main.js?v=12"></script>
+<script src="src/main.js?v=13"></script>
 </body>
 </html>

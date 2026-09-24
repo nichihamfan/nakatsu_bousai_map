@@ -9,7 +9,7 @@
   "hazard_tsunami": "Sóng thần",
   "hazard_none": "Ẩn lớp bản đồ",
   "relief_toggle": "Tô màu theo độ cao",
-  "relief_legend_title": "Độ cao (bản đồ địa hình màu)",
+  "relief_legend_title": "Độ cao (thang màu nhấn mạnh vùng đất thấp)",
   "relief_caveat": "Chỉ mang tính tham khảo. Không thể hiện phạm vi ngập lụt thực tế.",
   "pick_on_map": "Chọn điểm trên bản đồ",
   "pick_on_map_hint": "Nhấp vào bản đồ để chọn một điểm",

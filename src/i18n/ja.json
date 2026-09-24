@@ -9,7 +9,7 @@
   "hazard_tsunami": "津波",
   "hazard_none": "表示しない",
   "relief_toggle": "標高で色分け",
-  "relief_legend_title": "標高（色別標高図）",
+  "relief_legend_title": "標高（低地を重視した色分け）",
   "relief_caveat": "参考情報です。実際の浸水範囲を示すものではありません。",
   "pick_on_map": "地図で地点を指定",
   "pick_on_map_hint": "地図をクリックして地点を選んでください",

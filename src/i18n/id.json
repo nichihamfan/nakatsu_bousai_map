@@ -9,7 +9,7 @@
   "hazard_tsunami": "Tsunami",
   "hazard_none": "Sembunyikan lapisan",
   "relief_toggle": "Warnai berdasarkan ketinggian",
-  "relief_legend_title": "Ketinggian (peta relief berwarna)",
+  "relief_legend_title": "Ketinggian (skala menekankan dataran rendah)",
   "relief_caveat": "Hanya sebagai referensi. Bukan menunjukkan luas banjir sebenarnya.",
   "pick_on_map": "Pilih titik di peta",
   "pick_on_map_hint": "Klik pada peta untuk memilih titik",

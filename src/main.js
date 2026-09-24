@@ -26,6 +26,108 @@ const HAZARD_BITS = {
   tsunami: 8,
 };
 
+/* 標高の色分け表示（2026-09-25改修）。
+   国土地理院の「色別標高図」（事前レンダリング済みタイル）は日本全国で色の割り当てが
+   一律（0〜4000m超をカバーするスケール）であるため、中津市のような低平地では
+   標高差がほとんど同じ緑色に収まってしまい、浸水リスクの高低を読み取れないという
+   問題があった（ユーザー指摘、web調査でも同種の課題が指摘されていた：
+   「段彩（標高）の表現を内水浸水リスクの把握向けに見直す」等の先行議論を参照）。
+
+   対策として、国土地理院が無料公開している生の標高タイル（dem_png、1ピクセル=1標高値を
+   RGBにエンコードしたPNG）を取得し、ブラウザ側でピクセル単位に標高を復号した上で、
+   中津市の洪水浸水想定区域の実際の標高分布（事前調査：0〜25mに大半が collect、
+   分析スクリプト app/scripts/analyze_flood_zone_elevation.py 参照）に合わせた
+   独自のグラデーションで再配色する。低地ほど暖色（危険側）、高台ほど寒色（安全側）で
+   塗り分け、0〜30m程度の低平地に色の階調を集中させることで、平地内の微妙な標高差を
+   従来より判別しやすくした。 */
+
+// 国土地理院DEMタイルのRGB→標高変換（公式仕様）。無効値(128,0,0)はnullを返す。
+function decodeGsiElevation(r, g, b) {
+  if (r === 128 && g === 0 && b === 0) return null;
+  const x = r * 65536 + g * 256 + b;
+  if (x < 8388608) return x * 0.01;
+  if (x === 8388608) return null;
+  return (x - 16777216) * 0.01;
+}
+
+// 洪水浸水想定区域内の標高分布（実データ調査済み：0m=0%ile, 10m≈50%ile, 20m≈75%ile,
+// 40m≈90%ile）に基づき、低地に色の階調を集中させたグラデーション。
+// 低い＝暖色（危険側）、高い＝寒色〜緑（安全側）。
+const ELEVATION_COLOR_STOPS = [
+  [0, [123, 0, 100]], // 水際・最も低い
+  [2, [197, 27, 82]],
+  [5, [239, 59, 44]],
+  [10, [253, 141, 60]],
+  [15, [254, 196, 79]],
+  [20, [254, 227, 145]],
+  [30, [217, 239, 139]],
+  [50, [173, 221, 142]],
+  [100, [120, 198, 121]],
+  [250, [35, 132, 67]], // 高台・山地
+];
+
+function elevationToColor(h) {
+  if (h === null || h === undefined) return null;
+  if (h <= ELEVATION_COLOR_STOPS[0][0]) return ELEVATION_COLOR_STOPS[0][1];
+  for (let i = 1; i < ELEVATION_COLOR_STOPS.length; i++) {
+    const [hi, ci] = ELEVATION_COLOR_STOPS[i];
+    if (h <= hi) {
+      const [hLo, cLo] = ELEVATION_COLOR_STOPS[i - 1];
+      const t = (h - hLo) / (hi - hLo);
+      return [
+        Math.round(cLo[0] + (ci[0] - cLo[0]) * t),
+        Math.round(cLo[1] + (ci[1] - cLo[1]) * t),
+        Math.round(cLo[2] + (ci[2] - cLo[2]) * t),
+      ];
+    }
+  }
+  return ELEVATION_COLOR_STOPS[ELEVATION_COLOR_STOPS.length - 1][1];
+}
+
+// 国土地理院の生標高タイル（dem_png）を取得し、上記スケールで塗り直すLeafletレイヤー。
+// ネイティブズームは2〜14（それ以上はLeafletが拡大表示で補う）。
+const ElevationColorLayer = L.GridLayer.extend({
+  createTile: function (coords, done) {
+    const tile = L.DomUtil.create("canvas", "leaflet-tile");
+    tile.width = 256;
+    tile.height = 256;
+    const ctx = tile.getContext("2d");
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      try {
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, 256, 256);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const h = decodeGsiElevation(data[i], data[i + 1], data[i + 2]);
+          const color = elevationToColor(h);
+          if (color) {
+            data[i] = color[0];
+            data[i + 1] = color[1];
+            data[i + 2] = color[2];
+            data[i + 3] = 255;
+          } else {
+            data[i + 3] = 0; // データなし（海・タイル範囲外等）は透明にして下の地図を見せる
+          }
+        }
+        ctx.putImageData(imageData, 0, 0);
+      } catch (e) {
+        console.warn("[elevation layer] tile recolor failed", e);
+      }
+      done(null, tile);
+    };
+    img.onerror = () => done(null, tile); // 取得失敗時は空タイル（致命的エラーにしない）
+    const z = coords.z <= 14 ? coords.z : 14;
+    const scale = Math.pow(2, coords.z - z);
+    const tx = Math.floor(coords.x / scale);
+    const ty = Math.floor(coords.y / scale);
+    img.src = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${z}/${tx}/${ty}.png`;
+    return tile;
+  },
+});
+
 const SUPPORTED_LANGS = ["ja", "ja-easy", "en", "id", "vi", "my"];
 let currentLang = localStorage.getItem("nakatsu_bousai_lang") || "ja";
 let i18nCache = {};
@@ -128,16 +230,14 @@ function initMap() {
     maxZoom: 18,
   }).addTo(map);
 
-  // 色別標高図（国土地理院、無料・登録不要）。ハザードマップの指定区域外でも
-  // 低地は浸水リスクが相対的に高いことがあるため、標高を視覚的に確認できる
-  // 補助レイヤーとして追加した（既定は非表示、ボタンでON/OFF）。
-  // 提供元のネイティブズームは5〜15のため、それ以上は拡大表示で補う。
-  reliefLayer = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/relief/{z}/{x}/{y}.png", {
-    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル（色別標高図）</a>',
+  // 標高の色分け表示（国土地理院の生標高タイルを自前で再配色）。
+  // 詳細はElevationColorLayerの定義コメントを参照。
+  reliefLayer = new ElevationColorLayer({
+    attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル（標高）</a>',
     maxZoom: 18,
-    maxNativeZoom: 15,
+    maxNativeZoom: 14,
     minZoom: 5,
-    opacity: 0.6,
+    opacity: 0.65,
   });
 
   shelterMarkersLayer = L.layerGroup().addTo(map);
