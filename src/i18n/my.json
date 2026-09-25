@@ -85,7 +85,7 @@
   "elevation_route_apply_button": "ရှာပါ",
   "pick_elevation_on_map": "မြေပုံမှ အမြင့်ကို ညွှန်းပါ",
   "pick_elevation_on_map_hint": "မြေပုံကို နှိပ်ပါ — ထိုနေရာ၏ အမြင့်ကို စံသတ်မှတ်ချက်အဖြစ် အသုံးပြုပါမည်",
-  "elevation_route_invalid_input": "မှန်ကန်သော ကိန်းဂဏန်းကို ထည့်သွင်းပါ",
+  "elevation_route_slider_caveat": "နကာဆုမြို့ ရေကြီးဘေးအန္တရာယ်ဒေသ၏ အမှန်တကယ် ဒေတာအပေါ် အခြေခံသည့် အတိုင်းအတာဖြစ်သည် (ဒေသ၏ 95% သည် 50m အောက်တွင် ရှိသည်)",
   "elevation_route_pick_failed": "ဤနေရာ၏ အမြင့်ကို ရှာမတွေ့ပါ",
   "elevation_route_no_safe_point": "သတ်မှတ်အမြင့်အထက် ရှိသော နေရာကို ရှာမတွေ့ပါ",
   "elevation_route_no_shelter": "သတ်မှတ်အမြင့်အထက် ရှိသော ဘေးလွတ်ရာစခန်းကို ရှာမတွေ့ပါ",

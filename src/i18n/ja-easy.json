@@ -85,7 +85,7 @@
   "elevation_route_apply_button": "さがす",
   "pick_elevation_on_map": "ちずで たかさを えらぶ",
   "pick_elevation_on_map_hint": "ちずを タップして、その ばしょの たかさを つかいます",
-  "elevation_route_invalid_input": "ただしい かずじを いれてください",
+  "elevation_route_slider_caveat": "なかつしの こうずいの データを もとに した はんいです（この はんいの 95% が 50m みまん）",
   "elevation_route_pick_failed": "この ばしょの たかさが わかりませんでした",
   "elevation_route_no_safe_point": "せいていした たかさいじょうの ばしょが みつかりませんでした",
   "elevation_route_no_shelter": "せいていした たかさいじょうの ひなんじょが みつかりませんでした",

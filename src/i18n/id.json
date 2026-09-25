@@ -85,7 +85,7 @@
   "elevation_route_apply_button": "Cari",
   "pick_elevation_on_map": "Tentukan ketinggian dari peta",
   "pick_elevation_on_map_hint": "Klik pada peta — ketinggian titik tersebut akan digunakan sebagai batas minimum",
-  "elevation_route_invalid_input": "Masukkan angka yang valid",
+  "elevation_route_slider_caveat": "Rentang berdasarkan data aktual zona rawan banjir Kota Nakatsu (95% zona berada di bawah 50m)",
   "elevation_route_pick_failed": "Tidak dapat memperoleh ketinggian titik ini",
   "elevation_route_no_safe_point": "Tidak ditemukan titik pada ketinggian yang ditentukan atau lebih tinggi",
   "elevation_route_no_shelter": "Tidak ditemukan tempat evakuasi pada ketinggian yang ditentukan atau lebih tinggi",

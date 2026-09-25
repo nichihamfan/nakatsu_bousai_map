@@ -85,7 +85,7 @@
   "elevation_route_apply_button": "Search",
   "pick_elevation_on_map": "Pick elevation from map",
   "pick_elevation_on_map_hint": "Click on the map — that point's elevation will be used as the threshold",
-  "elevation_route_invalid_input": "Please enter a valid number",
+  "elevation_route_slider_caveat": "Range based on actual data for Nakatsu's flood hazard zone (95% of the zone is below 50m)",
   "elevation_route_pick_failed": "Could not get the elevation of this point",
   "elevation_route_no_safe_point": "No point at or above the specified elevation was found",
   "elevation_route_no_shelter": "No shelter at or above the specified elevation was found",

@@ -85,7 +85,7 @@
   "elevation_route_apply_button": "検索",
   "pick_elevation_on_map": "マップから標高を指定",
   "pick_elevation_on_map_hint": "地図をクリックして、その地点の標高を基準にします",
-  "elevation_route_invalid_input": "有効な数値を入力してください",
+  "elevation_route_slider_caveat": "中津市の洪水浸水想定区域の実データに基づく範囲です（区域内の95%が50m未満）",
   "elevation_route_pick_failed": "この地点の標高を取得できませんでした",
   "elevation_route_no_safe_point": "指定標高以上の地点が見つかりませんでした",
   "elevation_route_no_shelter": "指定標高以上の避難所が見つかりませんでした",

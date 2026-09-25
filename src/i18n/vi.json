@@ -85,7 +85,7 @@
   "elevation_route_apply_button": "Tìm kiếm",
   "pick_elevation_on_map": "Chọn độ cao từ bản đồ",
   "pick_elevation_on_map_hint": "Nhấp vào bản đồ — độ cao của điểm đó sẽ được dùng làm ngưỡng",
-  "elevation_route_invalid_input": "Vui lòng nhập một số hợp lệ",
+  "elevation_route_slider_caveat": "Phạm vi dựa trên dữ liệu thực tế của vùng nguy cơ ngập lụt Nakatsu (95% khu vực thấp hơn 50m)",
   "elevation_route_pick_failed": "Không thể lấy độ cao của điểm này",
   "elevation_route_no_safe_point": "Không tìm thấy điểm nào ở độ cao chỉ định trở lên",
   "elevation_route_no_shelter": "Không tìm thấy nơi trú ẩn nào ở độ cao chỉ định trở lên",

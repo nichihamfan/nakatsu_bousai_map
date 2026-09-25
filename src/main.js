@@ -265,6 +265,7 @@ async function setLanguage(lang) {
   localStorage.setItem("nakatsu_bousai_lang", lang);
   const dict = await loadI18n(lang);
   applyI18n(dict);
+  updateElevationThresholdDisplay(parseFloat(document.getElementById("elevationThresholdSlider").value));
   renderShelterList();
   renderSavedLocations();
   if (checklistData && !document.getElementById("checklistModal").hidden) renderChecklist();
@@ -1027,11 +1028,11 @@ function wireEvents() {
   document.getElementById("pickOnMapBtn").addEventListener("click", togglePickLocation);
 
   document.getElementById("elevationRouteToggleBtn").addEventListener("click", toggleElevationRoutePanel);
+  const elevationSlider = document.getElementById("elevationThresholdSlider");
+  elevationSlider.addEventListener("input", () => updateElevationThresholdDisplay(parseFloat(elevationSlider.value)));
+  elevationSlider.addEventListener("change", () => runElevationRoute(parseFloat(elevationSlider.value)));
   document.getElementById("elevationThresholdApplyBtn").addEventListener("click", () => {
-    runElevationRoute(parseFloat(document.getElementById("elevationThresholdInput").value));
-  });
-  document.getElementById("elevationThresholdInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") runElevationRoute(parseFloat(e.target.value));
+    runElevationRoute(parseFloat(elevationSlider.value));
   });
   document.getElementById("pickElevationOnMapBtn").addEventListener("click", togglePickElevationPoint);
 
@@ -1244,6 +1245,20 @@ function toggleElevationRoutePanel() {
   btn.setAttribute("aria-pressed", opening ? "true" : "false");
 }
 
+// スライダーの数値表示を更新する。地図で標高を指定した場合はスライダーの可動域
+// （0〜50m、洪水浸水想定区域の実データに基づく範囲）を超えることがあるため、
+// スライダーのつまみ位置は可動域内に収めつつ、実際に検索へ使う値（表示テキスト）は
+// 丸めずそのまま示す。
+function updateElevationThresholdDisplay(value) {
+  const slider = document.getElementById("elevationThresholdSlider");
+  const readout = document.getElementById("elevationThresholdValue");
+  const dict = i18nCache[currentLang] || {};
+  const max = Number(slider.max);
+  slider.value = String(Math.min(max, Math.max(Number(slider.min), Math.round(value))));
+  const label = Number.isInteger(value) ? String(value) : value.toFixed(1);
+  readout.textContent = `${label}${dict.elevation_route_unit_suffix || ""}`;
+}
+
 async function handleElevationPointPicked(lat, lon) {
   const dict = i18nCache[currentLang] || {};
   const hint = document.getElementById("elevationRouteHint");
@@ -1256,7 +1271,7 @@ async function handleElevationPointPicked(lat, lon) {
     hint.textContent = dict.elevation_route_pick_failed || "";
     return;
   }
-  document.getElementById("elevationThresholdInput").value = elev.toFixed(1);
+  updateElevationThresholdDisplay(elev);
   document.getElementById("elevationRoutePanel").hidden = false;
   document.getElementById("elevationRouteToggleBtn").setAttribute("aria-pressed", "true");
   await runElevationRoute(elev);
@@ -1302,11 +1317,6 @@ async function runElevationRoute(minElevation) {
     return;
   }
   if (!routingGraph.loaded) return;
-  if (!(minElevation >= 0)) {
-    hint.classList.add("error");
-    hint.textContent = dict.elevation_route_invalid_input || "";
-    return;
-  }
 
   hint.classList.remove("error");
   hint.textContent = dict.routing_calculating || "";
