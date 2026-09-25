@@ -79,5 +79,18 @@
   "save_location_placeholder": "Simpan dengan nama (misal: Rumah)",
   "save_location_button": "Simpan",
   "save_location_delete": "Hapus",
-  "saved_locations_label": "Titik keberangkatan tersimpan"
+  "saved_locations_label": "Titik keberangkatan tersimpan",
+  "elevation_route_toggle": "Rute ke ketinggian tertentu",
+  "elevation_route_unit_suffix": "m ke atas",
+  "elevation_route_apply_button": "Cari",
+  "pick_elevation_on_map": "Tentukan ketinggian dari peta",
+  "pick_elevation_on_map_hint": "Klik pada peta — ketinggian titik tersebut akan digunakan sebagai batas minimum",
+  "elevation_route_invalid_input": "Masukkan angka yang valid",
+  "elevation_route_pick_failed": "Tidak dapat memperoleh ketinggian titik ini",
+  "elevation_route_no_safe_point": "Tidak ditemukan titik pada ketinggian yang ditentukan atau lebih tinggi",
+  "elevation_route_no_shelter": "Tidak ditemukan tempat evakuasi pada ketinggian yang ditentukan atau lebih tinggi",
+  "elevation_route_escape_leg": "Rute menuju dataran tinggi",
+  "elevation_route_shelter_leg": "Dari sana ke tempat evakuasi",
+  "elevation_route_direct": "Rute ke tempat evakuasi",
+  "elevation_route_origin_unknown": "Ketinggian lokasi Anda saat ini tidak dapat diverifikasi, sehingga rute langsung ke tujuan ditampilkan"
 }

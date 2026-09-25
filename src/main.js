@@ -84,6 +84,49 @@ function elevationToColor(h) {
   return ELEVATION_COLOR_STOPS[ELEVATION_COLOR_STOPS.length - 1][1];
 }
 
+// 緯度経度から地理院標高タイルのタイル座標・タイル内ピクセル座標を求める
+// （Webメルカトル、標準的なslippy map計算式。app/scripts/compute_node_elevations.py の
+// Python版と同じ式で、事前計算値との整合性を保っている）。
+function lonLatToTileAndPixel(lon, lat, z) {
+  const n = Math.pow(2, z);
+  const fx = ((lon + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const fy = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n;
+  const tx = Math.floor(fx);
+  const ty = Math.floor(fy);
+  const px = Math.max(0, Math.min(255, Math.floor((fx - tx) * 256)));
+  const py = Math.max(0, Math.min(255, Math.floor((fy - ty) * 256)));
+  return { tx, ty, px, py };
+}
+
+// 地図クリック等で選んだ任意の1地点の標高を、地理院標高タイルから即時取得する
+// （道路網ノードの標高は事前計算済みだが、ユーザーが指定する任意地点はその場で取得する必要がある）。
+// 取得失敗時（オフライン・タイル範囲外等）はnullを返し、呼び出し側でフェイルセーフに扱う。
+async function getElevationAtPoint(lat, lon) {
+  const z = 14;
+  const { tx, ty, px, py } = lonLatToTileAndPixel(lon, lat, z);
+  const url = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${z}/${tx}/${ty}.png`;
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error("tile load failed"));
+      im.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const [r, g, b] = ctx.getImageData(px, py, 1, 1).data;
+    return decodeGsiElevation(r, g, b);
+  } catch (e) {
+    console.warn("[elevation lookup] failed", e);
+    return null;
+  }
+}
+
 // 国土地理院の生標高タイル（dem_png）を取得し、上記スケールで塗り直すLeafletレイヤー。
 // ネイティブズームは2〜14（それ以上はLeafletが拡大表示で補う）。
 const ElevationColorLayer = L.GridLayer.extend({
@@ -149,6 +192,12 @@ let avoidAllHazards = false; // 表示中レイヤーに関わらず4種のハ�
 let pickingLocation = false; // 地図クリックで地点を指定するモード中かどうか
 let pickedPoint = null; // 地図クリックで拾った直近の座標（ポップアップのボタンから参照）
 let pickedPointMarker = null; // ピン留め地点（出発地/目的地どちらにも使わなかった場合の一時マーカー）
+
+// 「指定標高以上のルート」機能（2026-09-25追加）関連の状態
+let pickingElevationPoint = false; // 「マップから標高を指定」のピック待機中かどうか
+let elevationRouteLayer = null; // 避難路（高台まで）＋避難所までの2区間を保持するレイヤーグループ
+let elevationSafePointMarker = null; // 避難路の終点（指定標高以上に達した地点）を示すマーカー
+let elevationFilterThreshold = null; // 指定標高以上の避難所のみを表示するフィルタ（null=無効）
 
 // 受入状況の表示ラベル・アイコン用キー対応
 const STATUS_KEYS = {
@@ -259,6 +308,14 @@ function togglePickLocation() {
 }
 
 function onMapClickForPicking(e) {
+  if (pickingElevationPoint) {
+    pickingElevationPoint = false;
+    document.getElementById("pickElevationOnMapBtn").setAttribute("aria-pressed", "false");
+    document.getElementById("elevationRouteHint").textContent = "";
+    map.getContainer().style.cursor = "";
+    handleElevationPointPicked(e.latlng.lat, e.latlng.lng);
+    return;
+  }
   if (!pickingLocation) return;
   pickingLocation = false;
   document.getElementById("pickOnMapBtn").setAttribute("aria-pressed", "false");
@@ -340,6 +397,7 @@ function renderShelterMarkers() {
     if (s.lat == null || s.lon == null) return;
     if (!activeTypeFilter.has(s.type)) return;
     if (acceptingOnly && !isAccepting(s)) return;
+    if (elevationFilterThreshold != null && !(s.elevation_m != null && s.elevation_m >= elevationFilterThreshold)) return;
     const icon = L.divIcon({
       className: "",
       html: shelterMarkerHtml(s.type, s.uncertain, s.status),
@@ -594,6 +652,7 @@ function renderShelterList() {
   const withDist = shelters
     .filter((s) => s.lat != null && s.lon != null && activeTypeFilter.has(s.type))
     .filter((s) => !acceptingOnly || isAccepting(s))
+    .filter((s) => elevationFilterThreshold == null || (s.elevation_m != null && s.elevation_m >= elevationFilterThreshold))
     .map((s) => ({
       ...s,
       dist: haversineKm(userLocation.lat, userLocation.lon, s.lat, s.lon),
@@ -967,6 +1026,15 @@ function wireEvents() {
 
   document.getElementById("pickOnMapBtn").addEventListener("click", togglePickLocation);
 
+  document.getElementById("elevationRouteToggleBtn").addEventListener("click", toggleElevationRoutePanel);
+  document.getElementById("elevationThresholdApplyBtn").addEventListener("click", () => {
+    runElevationRoute(parseFloat(document.getElementById("elevationThresholdInput").value));
+  });
+  document.getElementById("elevationThresholdInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") runElevationRoute(parseFloat(e.target.value));
+  });
+  document.getElementById("pickElevationOnMapBtn").addEventListener("click", togglePickElevationPoint);
+
   document.getElementById("checklistBtn").addEventListener("click", openChecklist);
   document.getElementById("closeChecklistBtn").addEventListener("click", () => {
     document.getElementById("checklistModal").hidden = true;
@@ -1022,11 +1090,24 @@ function clearRoute() {
     map.removeLayer(routeLayer);
     routeLayer = null;
   }
+  if (elevationRouteLayer) {
+    map.removeLayer(elevationRouteLayer);
+    elevationRouteLayer = null;
+  }
   if (pickedPointMarker) {
     map.removeLayer(pickedPointMarker);
     pickedPointMarker = null;
   }
+  if (elevationSafePointMarker) {
+    map.removeLayer(elevationSafePointMarker);
+    elevationSafePointMarker = null;
+  }
   document.getElementById("clearRouteBtn").hidden = true;
+  if (elevationFilterThreshold != null) {
+    elevationFilterThreshold = null;
+    renderShelterMarkers();
+    renderShelterList();
+  }
 }
 
 // 現在選択中のハザード種別（表示レイヤー）に加え、「危険エリアを避けたルートにする」
@@ -1135,6 +1216,194 @@ async function routeToPoint(destLat, destLon) {
   drawRouteLayer(result);
   pickedPointMarker = L.marker([destLat, destLon]).addTo(map);
   pickedPointMarker.bindPopup(routeResultText(result, elapsed)).openPopup();
+}
+
+// 「指定標高以上のルート」機能（2026-09-25追加）。
+// ハザードマップの危険範囲は行政が想定した一定の条件下での浸水域であり、実際の
+// 浸水がそれを超えて広がる可能性がある（ユーザー指摘）。そのため「ハザードエリア外か」
+// ではなく「標高が十分に高いか」という、より安全側に倒した基準で避難路を確認できる
+// ようにする。現在地が指定標高未満の場合は、まず道路網上で最も近い「指定標高以上の
+// 地点」（＝高台）までの経路（避難路）を求め、続けてその地点を起点に指定標高以上の
+// 避難所までの経路を求める、という2段階の探索を行う。
+function togglePickElevationPoint() {
+  pickingElevationPoint = !pickingElevationPoint;
+  const btn = document.getElementById("pickElevationOnMapBtn");
+  const hint = document.getElementById("elevationRouteHint");
+  const dict = i18nCache[currentLang] || {};
+  btn.setAttribute("aria-pressed", pickingElevationPoint ? "true" : "false");
+  map.getContainer().style.cursor = pickingElevationPoint ? "crosshair" : "";
+  hint.classList.remove("error");
+  hint.textContent = pickingElevationPoint ? dict.pick_elevation_on_map_hint || "" : "";
+}
+
+function toggleElevationRoutePanel() {
+  const panel = document.getElementById("elevationRoutePanel");
+  const btn = document.getElementById("elevationRouteToggleBtn");
+  const opening = panel.hidden;
+  panel.hidden = !opening;
+  btn.setAttribute("aria-pressed", opening ? "true" : "false");
+}
+
+async function handleElevationPointPicked(lat, lon) {
+  const dict = i18nCache[currentLang] || {};
+  const hint = document.getElementById("elevationRouteHint");
+  hint.classList.remove("error");
+  hint.textContent = dict.routing_calculating || "";
+
+  const elev = await getElevationAtPoint(lat, lon);
+  if (elev == null) {
+    hint.classList.add("error");
+    hint.textContent = dict.elevation_route_pick_failed || "";
+    return;
+  }
+  document.getElementById("elevationThresholdInput").value = elev.toFixed(1);
+  document.getElementById("elevationRoutePanel").hidden = false;
+  document.getElementById("elevationRouteToggleBtn").setAttribute("aria-pressed", "true");
+  await runElevationRoute(elev);
+}
+
+// 指定標高以上の避難所のうち、直線距離が近い上位候補について実際の道路距離を比較し、
+// 最短のものを採用する（直線距離のみで選ぶfindNearestAccepting()よりも精度を高めた設計。
+// 全候補について経路計算すると重いため、直線距離上位5件に絞って計算する）。
+function bestQualifyingShelterRoute(fromLat, fromLon, minElevation, avoidMask) {
+  const qualifying = shelters.filter(
+    (s) =>
+      s.lat != null &&
+      s.lon != null &&
+      activeTypeFilter.has(s.type) &&
+      (!acceptingOnly || isAccepting(s)) &&
+      s.elevation_m != null &&
+      s.elevation_m >= minElevation
+  );
+  if (qualifying.length === 0) return null;
+
+  const topCandidates = qualifying
+    .map((s) => ({ ...s, straightDist: haversineKm(fromLat, fromLon, s.lat, s.lon) }))
+    .sort((a, b) => a.straightDist - b.straightDist)
+    .slice(0, 5);
+
+  let best = null;
+  for (const cand of topCandidates) {
+    const result = routingGraph.route(fromLat, fromLon, cand.lat, cand.lon, avoidMask);
+    if (result && (!best || result.distanceM < best.result.distanceM)) {
+      best = { shelter: cand, result };
+    }
+  }
+  return best;
+}
+
+async function runElevationRoute(minElevation) {
+  const dict = i18nCache[currentLang] || {};
+  const hint = document.getElementById("elevationRouteHint");
+
+  if (!userLocation) {
+    hint.classList.add("error");
+    hint.textContent = dict.routing_need_location || "";
+    return;
+  }
+  if (!routingGraph.loaded) return;
+  if (!(minElevation >= 0)) {
+    hint.classList.add("error");
+    hint.textContent = dict.elevation_route_invalid_input || "";
+    return;
+  }
+
+  hint.classList.remove("error");
+  hint.textContent = dict.routing_calculating || "";
+  await new Promise((r) => setTimeout(r, 20));
+
+  const avoidMask = currentAvoidMask();
+  const originElev = await getElevationAtPoint(userLocation.lat, userLocation.lon);
+
+  let escapeResult = null;
+  let searchFromLat = userLocation.lat;
+  let searchFromLon = userLocation.lon;
+
+  if (originElev == null || originElev < minElevation) {
+    escapeResult = routingGraph.findNearestNodeAtElevation(userLocation.lat, userLocation.lon, minElevation, avoidMask);
+    if (!escapeResult) {
+      hint.classList.add("error");
+      hint.textContent = dict.elevation_route_no_safe_point || "";
+      return;
+    }
+    searchFromLat = escapeResult.lat;
+    searchFromLon = escapeResult.lon;
+  }
+
+  const best = bestQualifyingShelterRoute(searchFromLat, searchFromLon, minElevation, avoidMask);
+  if (!best) {
+    hint.classList.add("error");
+    hint.textContent = dict.elevation_route_no_shelter || "";
+    return;
+  }
+
+  drawElevationRoute(escapeResult, best.result, minElevation);
+  hint.classList.remove("error");
+  hint.textContent =
+    originElev == null
+      ? `${dict.elevation_route_origin_unknown || ""} ／ ${elevationRouteResultText(escapeResult, best.result)}`
+      : elevationRouteResultText(escapeResult, best.result);
+
+  elevationFilterThreshold = minElevation;
+  renderShelterMarkers();
+  renderShelterList();
+
+  showShelterDetail(best.shelter);
+  const infoEl = document.getElementById("detailRouteInfo");
+  infoEl.hidden = false;
+  infoEl.textContent = elevationRouteResultText(escapeResult, best.result);
+}
+
+function elevationRouteResultText(escapeResult, shelterResult) {
+  const dict = i18nCache[currentLang] || {};
+  const kmShelter = (shelterResult.distanceM / 1000).toFixed(2);
+  if (escapeResult) {
+    const kmEscape = (escapeResult.distanceM / 1000).toFixed(2);
+    const elevText = escapeResult.elevation != null ? escapeResult.elevation.toFixed(1) + "m" : "?";
+    return `${dict.elevation_route_escape_leg || ""}: ${kmEscape} km（${elevText}）／ ${dict.elevation_route_shelter_leg || ""}: ${kmShelter} km`;
+  }
+  return `${dict.elevation_route_direct || ""}: ${kmShelter} km`;
+}
+
+function drawElevationRoute(escapeResult, shelterResult, minElevation) {
+  clearRoute();
+  const layers = [];
+
+  if (escapeResult) {
+    layers.push(
+      L.polyline(escapeResult.path, {
+        color: "#c9871f",
+        weight: 5,
+        opacity: 0.9,
+        dashArray: "2,10",
+        lineCap: "round",
+      })
+    );
+    elevationSafePointMarker = L.circleMarker([escapeResult.lat, escapeResult.lon], {
+      radius: 7,
+      color: "#8a5f14",
+      fillColor: "#c9871f",
+      fillOpacity: 1,
+      weight: 2,
+    })
+      .addTo(map)
+      .bindPopup(`${escapeResult.elevation != null ? escapeResult.elevation.toFixed(1) : "?"}m`);
+  }
+
+  layers.push(
+    L.polyline(shelterResult.path, {
+      color: "#009e73",
+      weight: 5,
+      opacity: 0.85,
+      dashArray: "1,8",
+      lineCap: "round",
+    })
+  );
+
+  elevationRouteLayer = L.layerGroup(layers).addTo(map);
+  const bounds = L.latLngBounds(layers.flatMap((l) => l.getLatLngs()));
+  map.fitBounds(bounds, { padding: [40, 40] });
+  document.getElementById("clearRouteBtn").hidden = false;
 }
 
 async function loadChecklist() {

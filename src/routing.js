@@ -230,6 +230,90 @@ class RoutingGraph {
       return [lat, lon];
     });
   }
+
+  _elevationOf(nodeId) {
+    const n = this.nodes[nodeId];
+    return n && n.length > 2 ? n[2] : null;
+  }
+
+  /**
+   * 「指定標高以上のルート」機能（2026-09-25追加）の中核。
+   * 出発地から道路網をDijkstra法で探索し、標高が minElevation 以上のノードに
+   * 最初に到達した時点（＝道路距離で最も近い「高台」）で打ち切って経路を返す。
+   * Dijkstraはノードを距離の昇順で確定させていくため、この「最初に条件を満たした
+   * ノード」が道路距離ベースで最も近い候補であることが保証される。
+   * 標高データが無い（null）ノードは条件を満たさないものとして扱う。
+   */
+  findNearestNodeAtElevation(originLat, originLon, minElevation, avoidMask = 0) {
+    const originSnap = this.nearestEdgeSnap(originLat, originLon);
+    if (!originSnap) return null;
+
+    const ORIGIN_ID = "__elev_origin__";
+    this._addVirtualNode(ORIGIN_ID, originSnap);
+
+    const dist = new Map([[ORIGIN_ID, 0]]);
+    const prev = new Map();
+    const visited = new Set();
+    const heap = new MinHeap();
+    heap.push(ORIGIN_ID, 0);
+
+    let found = null;
+    while (!heap.isEmpty()) {
+      const { item: u, priority: d } = heap.pop();
+      if (visited.has(u)) continue;
+      visited.add(u);
+
+      if (u !== ORIGIN_ID) {
+        const elev = this._elevationOf(u);
+        if (elev != null && elev >= minElevation) {
+          found = u;
+          break;
+        }
+      }
+
+      const neighbors = this.adjacency[u] || [];
+      for (const [v, w, mask] of neighbors) {
+        const penalized = avoidMask && mask & avoidMask ? w * HAZARD_PENALTY : w;
+        const nd = d + penalized;
+        if (nd < (dist.get(v) ?? Infinity)) {
+          dist.set(v, nd);
+          prev.set(v, u);
+          heap.push(v, nd);
+        }
+      }
+    }
+
+    if (!found) {
+      this._removeVirtualNode(ORIGIN_ID, originSnap);
+      return null;
+    }
+
+    const path = [];
+    let cur = found;
+    while (cur !== undefined) {
+      path.unshift(cur);
+      cur = prev.get(cur);
+    }
+    const { distanceM } = this._realDistanceOf(path);
+    const latlngs = path.map((id) => {
+      if (id === ORIGIN_ID) return [originSnap.snapLat, originSnap.snapLon];
+      const [lon, lat] = this.nodes[id];
+      return [lat, lon];
+    });
+    latlngs.unshift([originLat, originLon]);
+
+    this._removeVirtualNode(ORIGIN_ID, originSnap);
+
+    const [lon, lat, elevation] = this.nodes[found];
+    return {
+      nodeId: found,
+      lat,
+      lon,
+      elevation,
+      path: latlngs,
+      distanceM: distanceM + originSnap.distToPoint,
+    };
+  }
 }
 
 function haversineM(lat1, lon1, lat2, lon2) {

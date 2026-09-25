@@ -395,6 +395,47 @@ input:focus-visible,
   color:var(--primary);
 }
 
+.elevation-route-panel{
+  padding:8px 10px 4px;
+  margin-bottom:10px;
+  background:var(--surface-2);
+  border-radius:8px;
+}
+.elevation-route-input-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:6px;
+}
+.elevation-threshold-input{
+  width:64px;
+  min-width:0;
+  font-size:0.8125rem;
+  padding:6px 8px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--ink);
+}
+.elevation-route-input-row span{
+  font-size:0.75rem;
+  color:var(--ink-soft);
+  font-weight:600;
+}
+.elevation-route-input-row button{
+  margin-left:auto;
+  flex:none;
+  font-size:0.78125rem;
+  font-weight:700;
+  padding:6px 12px;
+  border-radius:8px;
+  border:1px solid var(--primary);
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;
+}
+.elevation-route-panel .pick-on-map-btn{margin-bottom:6px;}
+
 .shelter-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
 .shelter-item{
   border:1px solid var(--line);

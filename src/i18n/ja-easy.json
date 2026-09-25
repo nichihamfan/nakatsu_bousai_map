@@ -79,5 +79,18 @@
   "save_location_placeholder": "なまえを つけて ほぞん（れい：いえ）",
   "save_location_button": "ほぞん",
   "save_location_delete": "けす",
-  "saved_locations_label": "ほぞんした しゅっぱつばしょ"
+  "saved_locations_label": "ほぞんした しゅっぱつばしょ",
+  "elevation_route_toggle": "たかさを きめて みちを さがす",
+  "elevation_route_unit_suffix": "m いじょう",
+  "elevation_route_apply_button": "さがす",
+  "pick_elevation_on_map": "ちずで たかさを えらぶ",
+  "pick_elevation_on_map_hint": "ちずを タップして、その ばしょの たかさを つかいます",
+  "elevation_route_invalid_input": "ただしい かずじを いれてください",
+  "elevation_route_pick_failed": "この ばしょの たかさが わかりませんでした",
+  "elevation_route_no_safe_point": "せいていした たかさいじょうの ばしょが みつかりませんでした",
+  "elevation_route_no_shelter": "せいていした たかさいじょうの ひなんじょが みつかりませんでした",
+  "elevation_route_escape_leg": "たかい ところまでの みち",
+  "elevation_route_shelter_leg": "そこから ひなんじょまでの みち",
+  "elevation_route_direct": "ひなんじょまでの みち",
+  "elevation_route_origin_unknown": "いま いる ばしょの たかさが わからなかったので、めざす ばしょまでの みちを そのまま ひょうじしています"
 }

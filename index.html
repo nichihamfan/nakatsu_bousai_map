@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="public/icons/icon-192.png">
 <meta name="theme-color" content="#1b4b66">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="src/styles.css?v=10">
+<link rel="stylesheet" href="src/styles.css?v=11">
 </head>
 <body>
 
@@ -112,6 +112,20 @@
       <input type="checkbox" id="avoidAllHazardsCb">
       <span id="t-avoid_all_hazards">危険エリアを避けたルートにする</span>
     </label>
+    <button id="elevationRouteToggleBtn" class="pick-on-map-btn" type="button" aria-pressed="false">
+      <span aria-hidden="true">⛰</span> <span id="t-elevation_route_toggle">指定標高以上のルート</span>
+    </button>
+    <div id="elevationRoutePanel" class="elevation-route-panel" hidden>
+      <div class="elevation-route-input-row">
+        <input type="number" id="elevationThresholdInput" class="elevation-threshold-input" min="0" step="1" inputmode="numeric">
+        <span id="t-elevation_route_unit_suffix">m以上</span>
+        <button id="elevationThresholdApplyBtn" type="button"><span id="t-elevation_route_apply_button">検索</span></button>
+      </div>
+      <button id="pickElevationOnMapBtn" class="pick-on-map-btn" type="button" aria-pressed="false">
+        <span aria-hidden="true">📌</span> <span id="t-pick_elevation_on_map">マップから標高を指定</span>
+      </button>
+      <p class="hint" id="elevationRouteHint"></p>
+    </div>
     <p class="hint" id="locateHint" data-i18n="locating"></p>
     <ul id="shelterList" class="shelter-list"></ul>
   </aside>
@@ -197,7 +211,7 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="src/routing.js?v=3"></script>
-<script src="src/main.js?v=13"></script>
+<script src="src/routing.js?v=4"></script>
+<script src="src/main.js?v=14"></script>
 </body>
 </html>

@@ -79,5 +79,18 @@
   "save_location_placeholder": "အမည်ဖြင့် သိမ်းပါ (ဥပမာ- အိမ်)",
   "save_location_button": "သိမ်းပါ",
   "save_location_delete": "ဖျက်ပါ",
-  "saved_locations_label": "သိမ်းထားသော ထွက်ခွာရာနေရာများ"
+  "saved_locations_label": "သိမ်းထားသော ထွက်ခွာရာနေရာများ",
+  "elevation_route_toggle": "သတ်မှတ်အမြင့်အထက် လမ်းကြောင်း",
+  "elevation_route_unit_suffix": "မီတာအထက်",
+  "elevation_route_apply_button": "ရှာပါ",
+  "pick_elevation_on_map": "မြေပုံမှ အမြင့်ကို ညွှန်းပါ",
+  "pick_elevation_on_map_hint": "မြေပုံကို နှိပ်ပါ — ထိုနေရာ၏ အမြင့်ကို စံသတ်မှတ်ချက်အဖြစ် အသုံးပြုပါမည်",
+  "elevation_route_invalid_input": "မှန်ကန်သော ကိန်းဂဏန်းကို ထည့်သွင်းပါ",
+  "elevation_route_pick_failed": "ဤနေရာ၏ အမြင့်ကို ရှာမတွေ့ပါ",
+  "elevation_route_no_safe_point": "သတ်မှတ်အမြင့်အထက် ရှိသော နေရာကို ရှာမတွေ့ပါ",
+  "elevation_route_no_shelter": "သတ်မှတ်အမြင့်အထက် ရှိသော ဘေးလွတ်ရာစခန်းကို ရှာမတွေ့ပါ",
+  "elevation_route_escape_leg": "မြင့်သောနေရာသို့ ရှောင်တိမ်းလမ်းကြောင်း",
+  "elevation_route_shelter_leg": "ထိုနေရာမှ ဘေးလွတ်ရာစခန်းအထိ",
+  "elevation_route_direct": "ဘေးလွတ်ရာစခန်းသို့ လမ်းကြောင်း",
+  "elevation_route_origin_unknown": "လက်ရှိတည်နေရာ၏ အမြင့်ကို အတည်မပြုနိုင်သဖြင့် ဦးတည်ရာသို့ တိုက်ရိုက်လမ်းကြောင်းကို ပြသထားပါသည်"
 }

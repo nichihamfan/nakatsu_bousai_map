@@ -79,5 +79,18 @@
   "save_location_placeholder": "Save with a name (e.g. Home)",
   "save_location_button": "Save",
   "save_location_delete": "Delete",
-  "saved_locations_label": "Saved starting points"
+  "saved_locations_label": "Saved starting points",
+  "elevation_route_toggle": "Route to elevation ≥",
+  "elevation_route_unit_suffix": "m or more",
+  "elevation_route_apply_button": "Search",
+  "pick_elevation_on_map": "Pick elevation from map",
+  "pick_elevation_on_map_hint": "Click on the map — that point's elevation will be used as the threshold",
+  "elevation_route_invalid_input": "Please enter a valid number",
+  "elevation_route_pick_failed": "Could not get the elevation of this point",
+  "elevation_route_no_safe_point": "No point at or above the specified elevation was found",
+  "elevation_route_no_shelter": "No shelter at or above the specified elevation was found",
+  "elevation_route_escape_leg": "Route to higher ground",
+  "elevation_route_shelter_leg": "From there to the shelter",
+  "elevation_route_direct": "Route to shelter",
+  "elevation_route_origin_unknown": "Could not verify your current elevation, so the direct route to the destination is shown instead"
 }

@@ -79,5 +79,18 @@
   "save_location_placeholder": "名前を付けて保存（例：自宅）",
   "save_location_button": "保存",
   "save_location_delete": "削除",
-  "saved_locations_label": "保存済みの出発地"
+  "saved_locations_label": "保存済みの出発地",
+  "elevation_route_toggle": "指定標高以上のルート",
+  "elevation_route_unit_suffix": "m以上",
+  "elevation_route_apply_button": "検索",
+  "pick_elevation_on_map": "マップから標高を指定",
+  "pick_elevation_on_map_hint": "地図をクリックして、その地点の標高を基準にします",
+  "elevation_route_invalid_input": "有効な数値を入力してください",
+  "elevation_route_pick_failed": "この地点の標高を取得できませんでした",
+  "elevation_route_no_safe_point": "指定標高以上の地点が見つかりませんでした",
+  "elevation_route_no_shelter": "指定標高以上の避難所が見つかりませんでした",
+  "elevation_route_escape_leg": "高台までの避難路",
+  "elevation_route_shelter_leg": "そこから避難所まで",
+  "elevation_route_direct": "避難所までのルート",
+  "elevation_route_origin_unknown": "現在地の標高を確認できなかったため、直接目的地までの経路を表示しています"
 }
