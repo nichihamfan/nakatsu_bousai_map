@@ -1060,6 +1060,16 @@ function inNakatsuBbox(lat, lon) {
 // より確実な比較方式に改めた）。地点自体は表示しつつユーザーに正直にその旨を伝える
 // （地図での確認・調整を促す）設計とした。
 
+// 手紙・名刺・公式サイト等からのコピー＆ペーストでは、住所の先頭に郵便番号
+// （「〒871-0088 」「871-0088 」等）が付いたまま貼り付けられることが多い。
+// 地理院API・Nominatimともに、この郵便番号が先頭にあると住所として一切
+// 認識できず0件を返すことを実機調査で確認した（2026-09-26、「手入力した住所が
+// 実際と異なる場所に表示される」というユーザー報告の原因調査で発見）。
+// 郵便番号は都道府県名より前に付くのが通例のため、検索前に先頭から取り除く。
+function stripLeadingPostalCode(s) {
+  return s.replace(/^〒?\s*[0-9０-９]{3}\s*[-－―ー]?\s*[0-9０-９]{4}\s*/, "");
+}
+
 // 住所文字列の先頭から、数字・丁目・番地・号・ハイフン類が現れるまでの部分を
 // 大まかな「地区名」とみなす（例："豊田1-1-111"→"豊田"、"四日市"→"四日市"）。
 function extractDistrictName(s) {
@@ -1266,7 +1276,7 @@ async function searchLocation(query) {
   const dict = i18nCache[currentLang] || {};
   const hint = document.getElementById("locationSearchHint");
   const btn = document.getElementById("locationSearchBtn");
-  const q = query.trim();
+  const q = stripLeadingPostalCode(query.trim()).trim();
   if (!q) return;
 
   const myRequestSeq = ++searchRequestSeq;
