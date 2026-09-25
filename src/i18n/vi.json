@@ -44,7 +44,7 @@
   "geocode_uncertain": "Vị trí này là ước lượng (cần xác minh)",
   "address": "Địa chỉ",
   "evac_location": "Khu vực sơ tán",
-  "footer_note": "Nguồn dữ liệu: Cổng thông tin Phòng chống thiên tai Thành phố Nakatsu / Thông tin số hóa đất đai quốc gia (MLIT) | Đây là bản thử nghiệm không chính thức, không phải do Thành phố Nakatsu cung cấp",
+  "footer_note": "Nguồn dữ liệu: Cổng thông tin Phòng chống thiên tai Thành phố Nakatsu / Thông tin số hóa đất đai quốc gia (MLIT) / Dữ liệu bản đồ địa chính của Văn phòng đăng ký (Bộ Tư pháp, chuyển đổi bởi G-spatial Information Center) / Dữ liệu địa chỉ Nhật Bản (Geolonia, Address Base Registry) | Đây là bản thử nghiệm không chính thức, không phải do Thành phố Nakatsu cung cấp",
   "show_route": "Hiển thị đường đi đến đây",
   "clear_route": "Xóa đường đi",
   "routing_calculating": "Đang tính toán đường đi…",

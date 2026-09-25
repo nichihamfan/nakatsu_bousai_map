@@ -11,7 +11,7 @@
      通信量とオフライン耐性を優先する。
    - 地理院地図タイルは stale-while-revalidate（表示速度とオフライン閲覧の両立）。 */
 
-const CACHE_VERSION = "v29";
+const CACHE_VERSION = "v30";
 const CACHE_NAME = `nakatsu-bousai-${CACHE_VERSION}`;
 
 const NETWORK_FIRST_URLS = [
@@ -34,6 +34,7 @@ const NETWORK_FIRST_URLS = [
 const CACHE_FIRST_URLS = [
   "public/data/checklist.json",
   "public/data/routing_graph.json",
+  "public/data/moj_parcel_centroids.json",
   "public/hazard/flood_planned.geojson",
   "public/hazard/sediment.geojson",
   "public/hazard/hightide.geojson",

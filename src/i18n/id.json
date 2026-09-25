@@ -44,7 +44,7 @@
   "geocode_uncertain": "Lokasi ini perkiraan (perlu verifikasi)",
   "address": "Alamat",
   "evac_location": "Area evakuasi",
-  "footer_note": "Sumber data: Portal Bencana Kota Nakatsu / Informasi Numerik Lahan Nasional (MLIT) | Aplikasi ini adalah prototipe tidak resmi, bukan disediakan oleh Kota Nakatsu",
+  "footer_note": "Sumber data: Portal Bencana Kota Nakatsu / Informasi Numerik Lahan Nasional (MLIT) / Data Peta Kadaster Kantor Pendaftaran (Kementerian Kehakiman, dikonversi oleh G-spatial Information Center) / Data alamat Jepang (Geolonia, Address Base Registry) | Aplikasi ini adalah prototipe tidak resmi, bukan disediakan oleh Kota Nakatsu",
   "show_route": "Tampilkan rute ke sini",
   "clear_route": "Hapus rute",
   "routing_calculating": "Menghitung rute…",

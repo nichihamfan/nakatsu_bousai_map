@@ -1107,8 +1107,12 @@ function extractDistrictName(s) {
 // 「大字」「字」は住所の正式表記に含まれることが多いが、地理院APIが返すtitleでは
 // 省略されるのが一般的なため（例："耶馬溪町大字柿坂"と入力しても"耶馬溪町柿坂"が
 // 返る）、比較前に取り除いて正規化する。
+// また「渓」「溪」（耶馬溪／耶馬渓）のような異体字の揺れが、Geoloniaのデータと
+// 法務省の登記所備付地図データとの間で実際に発生していることを2026-09-26に発見した
+// （両データを字単位で突き合わせた結果、耶馬溪町の15地区すべてでこの1文字だけが
+// 異なっていた）。正確性を優先し、既知の異体字はここで吸収する。
 function normalizeDistrictForMatch(s) {
-  return s.replace(/大字|字/g, "");
+  return s.replace(/大字|字/g, "").replace(/溪/g, "渓");
 }
 
 // 地理院APIの返す住所（title）が、入力した地区名と何ら対応していない場合は
@@ -1187,6 +1191,61 @@ function extractParcelNumbers(afterCity) {
   const m = normalized.match(/(\d+)(?:-(\d+))?(?:-(\d+))?\s*$/);
   if (!m) return null;
   return [m[1], m[2] || "", m[3] || ""];
+}
+
+// 法務省「登記所備付地図データ」を元にした地番中心点データ（2026-09-26追加）。
+// 「下宮永74-2」の誤差実測（約793m）をきっかけに、Geoloniaの地番データにも
+// 座標が無い場合の追加の無償データ源が無いか調査した結果、法務局が保有する公図・
+// 地籍図の実測データが2023年からG空間情報センターにてCC BY（表示）ライセンスで
+// 無償公開されていることを発見した。Geoloniaの地番データより出典として一段階
+// 上流（法務局の実測データそのもの）にあたり、対象の大字であれば個々の筆（地番）
+// の実際のポリゴン形状から求めた面積重心座標が得られる。
+// 中津市全域の筆ポリゴンデータ（約11.7万筆、生データ143MB）を取得し、各筆の
+// 面積重心座標を事前計算した軽量な参照データ（約3.3MB、大字名×地番→座標）として
+// app/public/data/moj_parcel_centroids.jsonに同梱した（生データが大きすぎるため、
+// ビルド時に一度だけオフラインで処理する方式とし、実行時に法務省へは問い合わせない）。
+// ただし法務局の地図整備（地籍調査等）が完了している大字に限られ、中津市内の
+// 大字のうち67大字（約10.5万筆）のみをカバーする。「下宮永」を含む残りの大字は、
+// 登記所備付地図データそのものが存在しないため、このデータでも解決できない
+// （詳細は作業記録.md参照）。
+// 出典：登記所備付地図データ（法務省）をもとにG空間情報センターにて変換処理して作成
+let mojParcelLookupCache = null;
+
+async function loadMojParcelLookup() {
+  if (mojParcelLookupCache) return mojParcelLookupCache;
+  try {
+    const res = await fetch("public/data/moj_parcel_centroids.json");
+    mojParcelLookupCache = await res.json();
+  } catch (e) {
+    console.warn("[moj parcel] lookup fetch failed", e);
+    mojParcelLookupCache = {};
+  }
+  return mojParcelLookupCache;
+}
+
+function findMojDistrictKey(lookup, queryDistrict) {
+  const normQuery = normalizeDistrictForMatch(queryDistrict);
+  let best = null;
+  let bestLen = 0;
+  for (const key of Object.keys(lookup)) {
+    if ((key.includes(normQuery) || normQuery.includes(key)) && key.length > bestLen) {
+      best = key;
+      bestLen = key.length;
+    }
+  }
+  return best;
+}
+
+async function tryMojParcelLookup(queryDistrict, afterCity) {
+  const parcelNums = extractParcelNumbers(afterCity);
+  if (!parcelNums) return null;
+  const lookup = await loadMojParcelLookup();
+  const districtKey = findMojDistrictKey(lookup, queryDistrict);
+  if (!districtKey) return null;
+  const chibanKey = [parcelNums[0], parcelNums[1], parcelNums[2]].filter(Boolean).join("-");
+  const point = lookup[districtKey] && lookup[districtKey][chibanKey];
+  if (!point) return null;
+  return { lat: point[1], lon: point[0] };
 }
 
 async function tryGeoloniaParcelLookup(queryDistrict, afterCity) {
@@ -1355,12 +1414,14 @@ async function searchLocation(query) {
       }
     }
 
-    // 地理院API・Nominatimでは大字レベルの概算にとどまった場合、デジタル庁の
-    // アドレス・ベース・レジストリを元にしたGeoloniaの地番データでも解決を試みる
-    // （地番ごとの座標が個別に整備されている場合のみ見つかる。全ての地番を
-    // 網羅しているわけではないため、見つからない場合は従来通り警告を表示する）。
+    // 地理院API・Nominatimでは大字レベルの概算にとどまった場合、より詳細な地番データで
+    // 解決を試みる。法務省の登記所備付地図データ（実測の公図・地籍図そのものが出典）を
+    // 優先し、対象の大字が未整備で見つからない場合のみデジタル庁アドレス・ベース・
+    // レジストリを元にしたGeoloniaの地番データにフォールバックする。いずれも
+    // 地番ごとの座標が整備されている場合のみ見つかり、両方とも網羅しているわけでは
+    // ないため、それでも見つからない場合は従来通り警告（誤差円）を表示する。
     if (imprecise) {
-      const refined = await tryGeoloniaParcelLookup(queryDistrict, afterCity);
+      const refined = (await tryMojParcelLookup(queryDistrict, afterCity)) || (await tryGeoloniaParcelLookup(queryDistrict, afterCity));
       if (myRequestSeq !== searchRequestSeq) return;
       if (refined) {
         hit.lat = refined.lat;

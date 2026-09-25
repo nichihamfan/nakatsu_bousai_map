@@ -44,7 +44,7 @@
   "geocode_uncertain": "This location is approximate (needs verification)",
   "address": "Address",
   "evac_location": "Evacuation area",
-  "footer_note": "Data sources: Nakatsu City Disaster Portal / National Land Numerical Information (MLIT) | This app is an unofficial prototype, not provided by Nakatsu City",
+  "footer_note": "Data sources: Nakatsu City Disaster Portal / National Land Numerical Information (MLIT) / Registry Office Cadastral Map Data (Ministry of Justice, converted by G-spatial Information Center) / Japanese address data (Geolonia, Address Base Registry) | This app is an unofficial prototype, not provided by Nakatsu City",
   "show_route": "Show route here",
   "clear_route": "Clear route",
   "routing_calculating": "Calculating route…",
