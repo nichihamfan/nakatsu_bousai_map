@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="public/icons/icon-192.png">
 <meta name="theme-color" content="#1b4b66">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="src/styles.css?v=13">
+<link rel="stylesheet" href="src/styles.css?v=14">
 </head>
 <body>
 
@@ -87,8 +87,12 @@
       <button id="saveLocationBtn" type="button"><span id="t-save_location_button">保存</span></button>
     </div>
     <div class="saved-locations" id="savedLocationsSection" hidden>
-      <div class="saved-locations-label" id="t-saved_locations_label">保存済みの出発地</div>
+      <div class="saved-locations-label" id="t-saved_locations_label">保存済みの地点</div>
       <div class="saved-locations-list" id="savedLocationsList"></div>
+    </div>
+    <div class="waypoints-section" id="waypointsSection" hidden>
+      <div class="waypoints-label" id="t-waypoints_label">経由地（自動で最適な順序に立ち寄ります）</div>
+      <div class="waypoints-list" id="waypointsList"></div>
     </div>
     <div class="type-filter" role="group" aria-label="shelter type filter">
       <label class="filter-chip">
@@ -216,6 +220,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="src/routing.js?v=5"></script>
-<script src="src/main.js?v=16"></script>
+<script src="src/main.js?v=18"></script>
 </body>
 </html>

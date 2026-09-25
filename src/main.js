@@ -193,6 +193,12 @@ let pickingLocation = false; // 地図クリックで地点を指定するモー
 let pickedPoint = null; // 地図クリックで拾った直近の座標（ポップアップのボタンから参照）
 let pickedPointMarker = null; // ピン留め地点（出発地/目的地どちらにも使わなかった場合の一時マーカー）
 
+// 経由地機能（2026-09-25追加）関連の状態
+const MAX_WAYPOINTS = 6; // 経由地の巡回順序を全探索で最適化するため、現実的な範囲で上限を設ける（6!=720通りで十分高速）
+let routeWaypoints = []; // {lat, lon, label} の配列。出発地→(最適順に並び替えた経由地)→目的地の順で経路を組む
+let lastRouteDestination = null; // 直近に経路表示した目的地。経由地の追加・削除時に自動で経路を再計算するために使う
+let savedLocationMenuEl = null; // 保存済み出発地チップの「出発地/目的地/経由地」選択ポップオーバー（DOM要素）
+
 // 「指定標高以上のルート」機能（2026-09-25追加）関連の状態
 let pickingElevationPoint = false; // 「マップから標高を指定」のピック待機中かどうか
 let elevationRouteLayer = null; // 避難路（高台まで）＋避難所までの2区間を保持するレイヤーグループ
@@ -325,6 +331,7 @@ async function setLanguage(lang) {
   updateElevationThresholdDisplay(currentElevationThreshold);
   renderShelterList();
   renderSavedLocations();
+  renderWaypointsList();
   if (checklistData && !document.getElementById("checklistModal").hidden) renderChecklist();
 }
 
@@ -404,6 +411,16 @@ function onMapClickForPicking(e) {
     routeToPoint(pickedPoint.lat, pickedPoint.lon);
   });
   container.appendChild(destBtn);
+
+  const waypointBtn = document.createElement("button");
+  waypointBtn.type = "button";
+  waypointBtn.className = "secondary";
+  waypointBtn.textContent = dict.pick_set_waypoint || "";
+  waypointBtn.addEventListener("click", () => {
+    addWaypoint(pickedPoint.lat, pickedPoint.lon, dict.waypoint_default_label || "");
+    map.closePopup();
+  });
+  container.appendChild(waypointBtn);
 
   L.popup({ className: "map-pick-popup" })
     .setLatLng(e.latlng)
@@ -769,6 +786,52 @@ function persistSavedLocations() {
   localStorage.setItem("nakatsu_bousai_saved_locations", JSON.stringify(savedLocations));
 }
 
+// 保存済み出発地のチップをクリックした際、「出発地にする／目的地にする／経由地にする」の
+// 3択を示す小さなポップオーバーを表示する（2026-09-25追加。従来は出発地固定だったが、
+// 目的地・経由地としても使えるようにしてほしいというユーザー要望を受けて改修）。
+function closeSavedLocationMenu() {
+  if (savedLocationMenuEl) {
+    savedLocationMenuEl.remove();
+    savedLocationMenuEl = null;
+    document.removeEventListener("click", onDocClickCloseSavedLocationMenu, true);
+  }
+}
+
+function onDocClickCloseSavedLocationMenu(e) {
+  if (savedLocationMenuEl && !savedLocationMenuEl.contains(e.target)) closeSavedLocationMenu();
+}
+
+function showSavedLocationMenu(loc, anchorEl) {
+  closeSavedLocationMenu();
+  const dict = i18nCache[currentLang] || {};
+  const menu = document.createElement("div");
+  menu.className = "saved-location-menu";
+  const rect = anchorEl.getBoundingClientRect();
+  const menuWidth = 160; // .saved-location-menuのmin-widthと合わせる（狭い画面での画面外はみ出しを防ぐ）
+  const left = Math.min(rect.left, window.innerWidth - menuWidth - 8);
+  menu.style.left = `${Math.max(4, Math.round(left))}px`;
+  menu.style.top = `${Math.round(rect.bottom + 4)}px`;
+
+  const makeBtn = (text, onClick) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = text;
+    btn.addEventListener("click", () => {
+      onClick();
+      closeSavedLocationMenu();
+    });
+    return btn;
+  };
+
+  menu.appendChild(makeBtn(dict.saved_location_set_origin || "", () => setUserLocation(loc.lat, loc.lon)));
+  menu.appendChild(makeBtn(dict.saved_location_set_destination || "", () => routeToPoint(loc.lat, loc.lon, loc.label)));
+  menu.appendChild(makeBtn(dict.saved_location_set_waypoint || "", () => addWaypoint(loc.lat, loc.lon, loc.label)));
+
+  document.body.appendChild(menu);
+  savedLocationMenuEl = menu;
+  setTimeout(() => document.addEventListener("click", onDocClickCloseSavedLocationMenu, true), 0);
+}
+
 function renderSavedLocations() {
   const dict = i18nCache[currentLang] || {};
   const section = document.getElementById("savedLocationsSection");
@@ -785,7 +848,7 @@ function renderSavedLocations() {
     selectBtn.type = "button";
     selectBtn.className = "saved-location-select";
     selectBtn.textContent = "📍 " + loc.label;
-    selectBtn.addEventListener("click", () => setUserLocation(loc.lat, loc.lon));
+    selectBtn.addEventListener("click", () => showSavedLocationMenu(loc, selectBtn));
     chip.appendChild(selectBtn);
 
     const delBtn = document.createElement("button");
@@ -815,6 +878,73 @@ function saveCurrentLocationAs(label) {
   persistSavedLocations();
   renderSavedLocations();
   document.getElementById("saveLocationNameInput").value = "";
+}
+
+// 経由地の追加・削除・一覧表示（2026-09-25追加）。経由地は出発地・目的地と異なり
+// 複数保持できるが、巡回順序の最適化を全探索で行うため現実的な上限を設けている
+// （MAX_WAYPOINTS）。既に経路が表示されている場合は、経由地の変更を即座に反映して
+// 経路を再計算する（Google マップ等、主要な経路サービスの挙動を参考にした）。
+function addWaypoint(lat, lon, label) {
+  if (routeWaypoints.length >= MAX_WAYPOINTS) return;
+  routeWaypoints.push({ lat, lon, label: label || "" });
+  renderWaypointsList();
+  refreshActiveRoute();
+}
+
+function removeWaypoint(index) {
+  routeWaypoints.splice(index, 1);
+  renderWaypointsList();
+  refreshActiveRoute();
+}
+
+function renderWaypointsList() {
+  const dict = i18nCache[currentLang] || {};
+  const section = document.getElementById("waypointsSection");
+  const list = document.getElementById("waypointsList");
+  list.innerHTML = "";
+  section.hidden = routeWaypoints.length === 0;
+
+  routeWaypoints.forEach((wp, i) => {
+    const chip = document.createElement("div");
+    chip.className = "waypoint-chip";
+
+    const label = document.createElement("span");
+    label.className = "waypoint-chip-label";
+    label.textContent = `${i + 1}. ${wp.label || dict.waypoint_default_label || ""}`;
+    chip.appendChild(label);
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "waypoint-chip-delete";
+    delBtn.textContent = "×";
+    delBtn.setAttribute("aria-label", dict.save_location_delete || "delete");
+    delBtn.addEventListener("click", () => removeWaypoint(i));
+    chip.appendChild(delBtn);
+
+    list.appendChild(chip);
+  });
+}
+
+// 現在表示中のルート（lastRouteDestination）がある状態で経由地が変更された場合、
+// 表示を古いままにせず自動的に経路を再計算する。
+async function refreshActiveRoute() {
+  if (!lastRouteDestination) return;
+  const dest = lastRouteDestination; // drawRouteLayer()内のclearRoute()でnullにされる前に退避する
+  const { result, elapsed, waypointOrder } = await computeMultiStopRoute(dest.lat, dest.lon);
+  if (!result) return;
+
+  drawRouteLayer(result);
+  const text = routeResultText(result, elapsed, waypointOrder);
+  if (dest.kind === "shelter") {
+    const infoEl = document.getElementById("detailRouteInfo");
+    infoEl.hidden = false;
+    infoEl.textContent = text;
+  } else {
+    if (pickedPointMarker) map.removeLayer(pickedPointMarker);
+    pickedPointMarker = L.marker([dest.lat, dest.lon]).addTo(map);
+    pickedPointMarker.bindPopup(text).openPopup();
+  }
+  lastRouteDestination = dest;
 }
 
 function locateUser() {
@@ -872,6 +1002,50 @@ function inNakatsuBbox(lat, lon) {
   return lon >= NAKATSU_BBOX.west && lon <= NAKATSU_BBOX.east && lat >= NAKATSU_BBOX.south && lat <= NAKATSU_BBOX.north;
 }
 
+// 入力住所からバウンディングボックス以外の誤マッチを検出するための補助関数群
+// （2026-09-25、「住所検索が異なる場所を示すことがある」というユーザー報告を受けて追加）。
+// 実機調査の結果、以下2種類の実害あるバグを確認した：
+// ①国土地理院APIは、入力した地区・大字名を特定できない場合でも「見つかりませんでした」
+//   ではなく、市区町村レベルの代表点（例："大分県中津市"のみ、座標は市役所付近）に
+//   静かにフォールバックすることがある。この代表点は当然バウンディングボックス内に
+//   収まるため、従来の実装では「正しく見つかった」ものとして誤って採用していた。
+//   （例："中津市四日市"「中津市駅館」等、実際には隣接する宇佐市・豊前市の地名だが、
+//   いずれも中津市の代表点に化けて返ってきた）
+// ②Nominatim検索にはバウンディングボックスの絞り込みが一切なかったため、
+//   例えば「三毛門」（実際は隣接する豊前市の大字）で検索すると、その正しい所在地
+//   （豊前市）の座標がたまたま中津市の広いバウンディングボックス内に収まることから、
+//   誤って中津市内の地点として採用されてしまっていた。
+// 対策として、地理院APIの結果については「市区町村名より先の部分」が入力した地区名と
+// 何らかの形で対応しているかを確認し、Nominatim検索についてもバウンディングボックスで
+// 絞り込むようにした。
+
+// 住所文字列の先頭から、数字・丁目・番地・号・ハイフン類が現れるまでの部分を
+// 大まかな「地区名」とみなす（例："豊田1-1-111"→"豊田"、"四日市"→"四日市"）。
+function extractDistrictName(s) {
+  const m = s.match(/^[^\d0-9０-９丁目番地号\-－―ー]+/);
+  return m ? m[0].trim() : s.trim();
+}
+
+// 「大字」「字」は住所の正式表記に含まれることが多いが、地理院APIが返すtitleでは
+// 省略されるのが一般的なため（例："耶馬溪町大字柿坂"と入力しても"耶馬溪町柿坂"が
+// 返る）、比較前に取り除いて正規化する。
+function normalizeDistrictForMatch(s) {
+  return s.replace(/大字|字/g, "");
+}
+
+// 地理院APIの返す住所（title）が、入力した地区名と何ら対応していない場合は
+// 信頼できない結果とみなして除外する。市区町村レベルのみのフォールバック
+// （"中津市"の後に何も続かない）は無条件で除外する。
+function gsiResultLooksValid(title, queryDistrict) {
+  const idx = title.indexOf("中津市");
+  const remainder = idx === -1 ? "" : title.slice(idx + "中津市".length).trim();
+  if (remainder.length === 0) return false;
+  if (!queryDistrict || queryDistrict.length < 2) return true;
+  const normRemainder = normalizeDistrictForMatch(remainder);
+  const normQuery = normalizeDistrictForMatch(queryDistrict);
+  return normRemainder.includes(normQuery) || normQuery.includes(normRemainder.slice(0, normQuery.length));
+}
+
 // 国土地理院（GSI）の住所検索API。無料・登録不要。Nominatim（OpenStreetMap）は
 // 「豊田1丁目1番地111」のような日本の住所表記（丁目・番地、全角/半角ハイフン等の
 // 表記ゆれを含む）にほぼ対応できないことが実機検証で判明した（同じ場所を指す
@@ -882,7 +1056,7 @@ function inNakatsuBbox(lat, lon) {
 // あるものだけを採用する（他都市の同名地区への誤マッチ防止）。
 const GSI_ADDRESS_SEARCH_URL = "https://msearch.gsi.go.jp/address-search/AddressSearch";
 
-async function tryGsiAddressSearch(query) {
+async function tryGsiAddressSearch(query, queryDistrict) {
   try {
     const url = `${GSI_ADDRESS_SEARCH_URL}?q=${encodeURIComponent(query)}`;
     const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -890,9 +1064,10 @@ async function tryGsiAddressSearch(query) {
     if (!Array.isArray(results)) return null;
     for (const r of results) {
       const coords = r.geometry && r.geometry.coordinates;
+      const title = (r.properties && r.properties.title) || "";
       if (!coords) continue;
       const [lon, lat] = coords;
-      if (inNakatsuBbox(lat, lon)) return { lat, lon };
+      if (inNakatsuBbox(lat, lon) && gsiResultLooksValid(title, queryDistrict)) return { lat, lon };
     }
     return null;
   } catch (e) {
@@ -912,8 +1087,25 @@ async function tryNominatimSearch(query) {
     const results = await res.json();
     if (!results || results.length === 0) return null;
 
-    const topImportance = Math.max(...results.map((c) => c.importance || 0));
-    const topCandidates = results.filter((c) => (c.importance || 0) >= topImportance - 1e-9);
+    // bounded=1はNominatim側の絞り込みヒントに過ぎず、隣接自治体の地点が
+    // バウンディングボックスの外縁付近に収まって返ってくることがある
+    // （実機検証で確認：中津市に隣接する豊前市の地名「三毛門」の座標が、中津市を
+    // 囲む矩形のバウンディングボックス内にそのまま収まってしまうケースを確認した。
+    // 矩形のbboxは行政界の形状と一致しないため、境界付近ではこの種の誤判定を
+    // 避けられない）。display_nameには実際の市区町村名が含まれているため、
+    // バウンディングボックスに加えて「中津市」を含み他の市区町村名を含まないことも
+    // 確認することで、行政界をまたいだ誤マッチをより確実に排除する。
+    const validResults = results.filter((c) => {
+      if (!inNakatsuBbox(parseFloat(c.lat), parseFloat(c.lon))) return false;
+      const name = c.display_name || "";
+      if (!name.includes("中津市")) return false;
+      if (/(豊前市|宇佐市|玖珠町|日田市|築上郡)/.test(name)) return false;
+      return true;
+    });
+    if (validResults.length === 0) return null;
+
+    const topImportance = Math.max(...validResults.map((c) => c.importance || 0));
+    const topCandidates = validResults.filter((c) => (c.importance || 0) >= topImportance - 1e-9);
     const r = topCandidates.reduce((best, c) => {
       const d = haversineKm(NAKATSU_CENTER[0], NAKATSU_CENTER[1], parseFloat(c.lat), parseFloat(c.lon));
       return d < best.d ? { c, d } : best;
@@ -924,6 +1116,13 @@ async function tryNominatimSearch(query) {
     return null;
   }
 }
+
+// 検索の度に増やすリクエストID。ユーザーが検索語を編集して立て続けに検索した場合、
+// 後発の（＝ユーザーが本来意図した）検索より先に旧い検索のレスポンスが遅れて返ってくると、
+// 正しい検索結果が古い結果で上書きされてしまう競合状態が発生しうる（2026-09-25、
+// 「住所検索が異なる場所を示すことがある」の一因として実装上のレビューで発見）。
+// 各呼び出しの結果を反映する前に、自分が最新のリクエストであるかを確認することで防ぐ。
+let searchRequestSeq = 0;
 
 // GPSが使えない場合の代替として、住所・施設名から地点を検索する（他の防災アプリ調査で
 // 「現在地取得不可時の住所検索」が広く提供されていたため追加：全国避難所ガイド等）。
@@ -936,6 +1135,8 @@ async function searchLocation(query) {
   const q = query.trim();
   if (!q) return;
 
+  const myRequestSeq = ++searchRequestSeq;
+
   hint.classList.remove("error");
   hint.textContent = dict.loading || "";
   btn.disabled = true;
@@ -946,7 +1147,13 @@ async function searchLocation(query) {
     // 全国の同名地区がヒットしてしまうことを実機検証で確認した）。
     // すでに「中津市」を含む入力の場合は二重に付けない。
     const gsiQuery = q.includes("中津市") ? q : "中津市" + q;
-    const hit = (await tryGsiAddressSearch(gsiQuery)) || (await tryNominatimSearch(q + " 中津市"));
+    const afterCity = gsiQuery.slice(gsiQuery.indexOf("中津市") + "中津市".length);
+    const queryDistrict = extractDistrictName(afterCity);
+    const hit = (await tryGsiAddressSearch(gsiQuery, queryDistrict)) || (await tryNominatimSearch(q + " 中津市"));
+
+    // 自分より後に開始された検索がある場合、その結果で既に上書きされているはずなので
+    // このリクエストの結果は反映しない（競合状態の防止）。
+    if (myRequestSeq !== searchRequestSeq) return;
 
     if (!hit) {
       hint.classList.add("error");
@@ -958,11 +1165,12 @@ async function searchLocation(query) {
     hint.classList.remove("error");
     hint.textContent = "";
   } catch (e) {
+    if (myRequestSeq !== searchRequestSeq) return;
     console.warn("[location search] failed", e);
     hint.classList.add("error");
     hint.textContent = dict.location_search_not_found || "";
   } finally {
-    btn.disabled = false;
+    if (myRequestSeq === searchRequestSeq) btn.disabled = false;
   }
 }
 
@@ -1184,6 +1392,7 @@ function clearRoute() {
     elevationSafePointMarker = null;
   }
   document.getElementById("clearRouteBtn").hidden = true;
+  lastRouteDestination = null;
   if (elevationFilterThreshold != null) {
     elevationFilterThreshold = null;
     renderShelterMarkers();
@@ -1204,18 +1413,83 @@ function currentAvoidMask() {
   return avoidMask;
 }
 
-async function computeRouteTo(destLat, destLon) {
+// 出発地→（経由地があれば最適順序で立ち寄り）→目的地、の経路を計算する（2026-09-25、
+// 経由地機能の追加に伴いcomputeRouteTo()を置き換え）。経由地が無い場合は従来通りの
+// 単純な2点間探索となる。経由地がある場合、出発地・目的地の位置は固定したまま経由地の
+// 巡回順序を全探索し、実際の道路距離（ハザード回避時はソフト回避後の実距離）の総和が
+// 最小となる順序を採用する。経由地数の上限（MAX_WAYPOINTS=6）は6!=720通りに収まり、
+// 主要な経路探索サービスも少数の経由地では同様の全探索的な最適化を行っているため、
+// ブラウザ内でも実用上問題ない速度で計算できる（web調査で確認、作業記録.md参照）。
+async function computeMultiStopRoute(destLat, destLon) {
   if (!userLocation || !routingGraph.loaded) return null;
   // UIをブロックしないよう次フレームで計算（同期Dijkstraのため）
   await new Promise((r) => setTimeout(r, 20));
   const avoidMask = currentAvoidMask();
   const t0 = performance.now();
-  const result = routingGraph.route(userLocation.lat, userLocation.lon, destLat, destLon, avoidMask);
-  const elapsed = performance.now() - t0;
-  return { result, elapsed };
+
+  if (routeWaypoints.length === 0) {
+    const result = routingGraph.route(userLocation.lat, userLocation.lon, destLat, destLon, avoidMask);
+    return { result, elapsed: performance.now() - t0, waypointOrder: null };
+  }
+
+  const points = [{ lat: userLocation.lat, lon: userLocation.lon }, ...routeWaypoints, { lat: destLat, lon: destLon }];
+  const n = points.length;
+
+  // 全ペア間（i<j）の経路をあらかじめ計算しておき、順列評価では距離の合算のみ行う
+  const legCache = new Map();
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const r = routingGraph.route(points[i].lat, points[i].lon, points[j].lat, points[j].lon, avoidMask);
+      if (!r) return { result: null, elapsed: performance.now() - t0, waypointOrder: null };
+      legCache.set(`${i}-${j}`, r);
+    }
+  }
+  const legOf = (i, j) => legCache.get(i < j ? `${i}-${j}` : `${j}-${i}`);
+
+  // 出発地(0)・目的地(n-1)を固定し、経由地(1..n-2)の順列を全探索して総距離最小の順序を求める
+  const waypointIdx = [];
+  for (let i = 1; i < n - 1; i++) waypointIdx.push(i);
+
+  function permutations(arr) {
+    if (arr.length <= 1) return [arr];
+    const out = [];
+    for (let i = 0; i < arr.length; i++) {
+      const rest = arr.slice(0, i).concat(arr.slice(i + 1));
+      for (const p of permutations(rest)) out.push([arr[i], ...p]);
+    }
+    return out;
+  }
+
+  let bestOrder = null;
+  let bestDistance = Infinity;
+  for (const perm of permutations(waypointIdx)) {
+    const order = [0, ...perm, n - 1];
+    let total = 0;
+    for (let k = 0; k < order.length - 1; k++) total += legOf(order[k], order[k + 1]).distanceM;
+    if (total < bestDistance) {
+      bestDistance = total;
+      bestOrder = order;
+    }
+  }
+
+  // 最良順序に沿って各区間のパスをつなぎ合わせ、1本の描画用パスにする
+  let combinedPath = [];
+  let hazardEdgeCount = 0;
+  for (let k = 0; k < bestOrder.length - 1; k++) {
+    const i = bestOrder[k];
+    const j = bestOrder[k + 1];
+    const leg = legOf(i, j);
+    const path = i < j ? leg.path : [...leg.path].reverse();
+    combinedPath = k === 0 ? combinedPath.concat(path) : combinedPath.concat(path.slice(1));
+    hazardEdgeCount += leg.hazardEdgeCount;
+  }
+
+  const result = { path: combinedPath, distanceM: bestDistance, hazardEdgeCount, avoided: avoidMask !== 0 };
+  const waypointOrder = bestOrder.slice(1, -1).map((idx) => routeWaypoints[idx - 1]);
+  return { result, elapsed: performance.now() - t0, waypointOrder };
 }
 
-function routeResultText(result, elapsed) {
+function routeResultText(result, elapsed, waypointOrder) {
   const dict = i18nCache[currentLang] || {};
   const km = (result.distanceM / 1000).toFixed(2);
   let text = `${dict.routing_distance || ""}: ${km} km （${Math.round(elapsed)}ms）`;
@@ -1223,6 +1497,10 @@ function routeResultText(result, elapsed) {
     text += result.hazardEdgeCount > 0
       ? ` ／ ${dict.routing_hazard_unavoidable || ""}`
       : ` ／ ${dict.routing_hazard_avoided || ""}`;
+  }
+  if (waypointOrder && waypointOrder.length > 0) {
+    const names = waypointOrder.map((w) => w.label || dict.waypoint_default_label || "").join(" → ");
+    text = `${dict.route_via_prefix || ""}: ${names} ／ ${text}`;
   }
   return text;
 }
@@ -1254,7 +1532,7 @@ async function showRouteToSelected() {
   infoEl.hidden = false;
   infoEl.textContent = dict.routing_calculating || "";
 
-  const { result, elapsed } = await computeRouteTo(selectedShelter.lat, selectedShelter.lon);
+  const { result, elapsed, waypointOrder } = await computeMultiStopRoute(selectedShelter.lat, selectedShelter.lon);
 
   if (!result) {
     infoEl.textContent = dict.routing_no_route || "";
@@ -1262,13 +1540,15 @@ async function showRouteToSelected() {
   }
 
   drawRouteLayer(result);
-  infoEl.textContent = routeResultText(result, elapsed);
+  infoEl.textContent = routeResultText(result, elapsed, waypointOrder);
   document.getElementById("shelterDetail").hidden = true;
+  lastRouteDestination = { lat: selectedShelter.lat, lon: selectedShelter.lon, kind: "shelter" };
 }
 
-// 地図上で指定した任意の地点を目的地としてルート表示する（避難所一覧に無い地点でも
-// 危険性を確認できるようにするための機能）。結果は目的地マーカーに紐づくポップアップで表示する。
-async function routeToPoint(destLat, destLon) {
+// 地図上で指定した任意の地点、または保存済み地点を目的地としてルート表示する
+// （避難所一覧に無い地点でも危険性を確認できるようにするための機能）。
+// 結果は目的地マーカーに紐づくポップアップで表示する。
+async function routeToPoint(destLat, destLon, label) {
   const dict = i18nCache[currentLang] || {};
 
   if (pickedPointMarker) {
@@ -1285,7 +1565,7 @@ async function routeToPoint(destLat, destLon) {
   }
   if (!routingGraph.loaded) return;
 
-  const { result, elapsed } = await computeRouteTo(destLat, destLon);
+  const { result, elapsed, waypointOrder } = await computeMultiStopRoute(destLat, destLon);
 
   if (!result) {
     pickedPointMarker = L.marker([destLat, destLon]).addTo(map).bindPopup(dict.routing_no_route || "").openPopup();
@@ -1296,7 +1576,9 @@ async function routeToPoint(destLat, destLon) {
   // マーカーの作成は必ずdrawRouteLayer()の後で行う。
   drawRouteLayer(result);
   pickedPointMarker = L.marker([destLat, destLon]).addTo(map);
-  pickedPointMarker.bindPopup(routeResultText(result, elapsed)).openPopup();
+  const popupText = label ? `${label} - ${routeResultText(result, elapsed, waypointOrder)}` : routeResultText(result, elapsed, waypointOrder);
+  pickedPointMarker.bindPopup(popupText).openPopup();
+  lastRouteDestination = { lat: destLat, lon: destLon, kind: "point", label };
 }
 
 // 「指定標高以上のルート」機能（2026-09-25追加）。
