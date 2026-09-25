@@ -247,6 +247,7 @@ input:focus-visible,
 .side-panel h2{font-size:0.875rem;margin:0 0 8px;color:var(--primary);}
 .hint{font-size:0.75rem;color:var(--ink-soft);}
 .hint.error{color:var(--block);font-weight:600;}
+.hint.warn{color:var(--warn);font-weight:600;}
 
 .location-search{display:flex;gap:6px;margin-bottom:4px;}
 .location-search input{

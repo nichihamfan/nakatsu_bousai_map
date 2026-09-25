@@ -1018,6 +1018,19 @@ function inNakatsuBbox(lat, lon) {
 // 対策として、地理院APIの結果については「市区町村名より先の部分」が入力した地区名と
 // 何らかの形で対応しているかを確認し、Nominatim検索についてもバウンディングボックスで
 // 絞り込むようにした。
+// ③【2026-09-25追加】上記の対策後も、「下宮永74－2」のように大字（地区）は実在するが
+// 番地レベルのデータを地理院API・Nominatimのどちらも持っていない住所では、番地の
+// 有無に関わらず常に同じ「大字の代表点」を返してしまうことを実機調査で確認した
+// （例：「中津市下宮永」「中津市下宮永74－2」「中津市下宮永74番地の2」を検索しても
+// 全て同一座標が返る）。これは他都市への誤マッチではなく、無料の地理院API・Nominatim
+// 双方に共通する地番データの網羅性の限界であり、完全な解決はできない。そのため、
+// 番地・丁目等の数字を入力した場合、地区名だけで検索した場合と同じ座標に
+// 落ち着いていないかを実際にもう一度検索して比較することで判定する（詳細は
+// searchLocation()参照。当初は結果の住所文字列に数字が含まれるかで判定しようとしたが、
+// 「中殿町一丁目」のように漢数字のみで判定に使えない例や、番地を変えても常に同じ座標を
+// 返す「豊田町」のようにテキストだけでは判別できない例が実機調査で見つかったため、
+// より確実な比較方式に改めた）。地点自体は表示しつつユーザーに正直にその旨を伝える
+// （地図での確認・調整を促す）設計とした。
 
 // 住所文字列の先頭から、数字・丁目・番地・号・ハイフン類が現れるまでの部分を
 // 大まかな「地区名」とみなす（例："豊田1-1-111"→"豊田"、"四日市"→"四日市"）。
@@ -1044,6 +1057,12 @@ function gsiResultLooksValid(title, queryDistrict) {
   const normRemainder = normalizeDistrictForMatch(remainder);
   const normQuery = normalizeDistrictForMatch(queryDistrict);
   return normRemainder.includes(normQuery) || normQuery.includes(normRemainder.slice(0, normQuery.length));
+}
+
+// 番地・丁目等の数字が含まれているかどうか。地区（大字）レベルまでしか一致しない
+// フォールバックを検出するために使う（下記参照）。
+function hasDigits(s) {
+  return /[0-9０-９]/.test(s || "");
 }
 
 // 国土地理院（GSI）の住所検索API。無料・登録不要。Nominatim（OpenStreetMap）は
@@ -1156,6 +1175,7 @@ async function searchLocation(query) {
     if (myRequestSeq !== searchRequestSeq) return;
 
     if (!hit) {
+      hint.classList.remove("warn");
       hint.classList.add("error");
       hint.textContent = dict.location_search_not_found || "";
       return;
@@ -1163,10 +1183,37 @@ async function searchLocation(query) {
 
     setUserLocation(hit.lat, hit.lon);
     hint.classList.remove("error");
-    hint.textContent = "";
+
+    // 番地・丁目等の数字を入力した場合、それが実際に結果へ反映されているかを確認する。
+    // 判定方法として、当初は「一致した住所の文字列に数字が含まれているか」という
+    // テキストパターンで判定しようとしたが、実機調査で誤検知することが判明した
+    // （例："中殿町一丁目"は漢数字のみで判定に使えない、"豊田町"は番地を変えても常に
+    // 同じ座標を返す＝実際には大字レベルの概算だったが、テキストだけでは判別できない）。
+    // より確実な方法として、「地区名だけで検索した場合と同じ座標に落ち着いていないか」を
+    // 実際にもう一度検索して比較する（座標が変わらない＝番地は結果に反映されておらず、
+    // 大字・地区レベルの代表点へのフォールバックであると判断できる）。
+    let imprecise = false;
+    if (hasDigits(afterCity) && queryDistrict && queryDistrict.length >= 2 && queryDistrict !== afterCity) {
+      const districtOnlyQuery = "中津市" + queryDistrict;
+      const districtHit =
+        (await tryGsiAddressSearch(districtOnlyQuery, queryDistrict)) || (await tryNominatimSearch(queryDistrict + " 中津市"));
+      if (myRequestSeq !== searchRequestSeq) return;
+      if (districtHit && Math.abs(districtHit.lat - hit.lat) < 1e-6 && Math.abs(districtHit.lon - hit.lon) < 1e-6) {
+        imprecise = true;
+      }
+    }
+
+    if (imprecise) {
+      hint.classList.add("warn");
+      hint.textContent = dict.location_search_imprecise || "";
+    } else {
+      hint.classList.remove("warn");
+      hint.textContent = "";
+    }
   } catch (e) {
     if (myRequestSeq !== searchRequestSeq) return;
     console.warn("[location search] failed", e);
+    hint.classList.remove("warn");
     hint.classList.add("error");
     hint.textContent = dict.location_search_not_found || "";
   } finally {

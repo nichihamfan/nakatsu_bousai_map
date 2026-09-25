@@ -78,6 +78,7 @@
   "location_search_placeholder": "လိပ်စာ သို့မဟုတ် နေရာအမည်ဖြင့် ရှာပါ",
   "location_search_button": "ရှာပါ",
   "location_search_not_found": "မတွေ့ပါ။ တခြားစကားလုံးဖြင့် ထပ်စမ်းကြည့်ပါ",
+  "location_search_imprecise": "အိမ်နံပါတ်အတိအကျကို ရှာမတွေ့ခဲ့ပါ၊ ထို့ကြောင့် ဒေသ၏ ခန့်မှန်းနေရာကို ပြသထားပါသည်။ 「မြေပုံပေါ်တွင် နေရာတစ်ခု ရွေးပါ」ကို အသုံးပြု၍ စစ်ဆေးပြီး ပြင်ဆင်ပါ",
   "save_location_placeholder": "အမည်ဖြင့် သိမ်းပါ (ဥပမာ- အိမ်)",
   "save_location_button": "သိမ်းပါ",
   "save_location_delete": "ဖျက်ပါ",

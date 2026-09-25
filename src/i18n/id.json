@@ -78,6 +78,7 @@
   "location_search_placeholder": "Cari berdasarkan alamat atau nama tempat",
   "location_search_button": "Cari",
   "location_search_not_found": "Tidak ditemukan. Coba kata kunci lain",
+  "location_search_imprecise": "Nomor rumah yang tepat tidak dapat ditemukan, sehingga lokasi perkiraan area ditampilkan. Silakan periksa dan sesuaikan menggunakan \"Pilih titik di peta\"",
   "save_location_placeholder": "Simpan dengan nama (misal: Rumah)",
   "save_location_button": "Simpan",
   "save_location_delete": "Hapus",
