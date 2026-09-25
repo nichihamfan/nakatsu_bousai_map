@@ -183,6 +183,7 @@ let earthquakeLayer = null;
 let earthquakeVisible = false;
 let map;
 let userMarker;
+let userUncertaintyCircle;
 let shelterMarkersLayer;
 let routingGraph = new RoutingGraph();
 let routeLayer = null;
@@ -792,9 +793,28 @@ function escapeHtml(str) {
 
 // 現在地マーカーの更新・地図移動・避難所リスト再描画・出発地保存欄の表示を一箇所にまとめる。
 // GPS取得・住所検索・保存済み出発地の選択、いずれの経路からもここを通す。
-function setUserLocation(lat, lon, zoom = 15) {
+// uncertaintyRadiusMが指定された場合、その半径の円を重ねて表示する。住所検索が
+// 大字レベルの代表点までしか特定できなかった場合に使う（2026-09-26追加）。実際に
+// 「下宮永74-2」を商用地図データ（ゼンリン住宅地図ベース）の座標と突き合わせたところ、
+// 大字の代表点との誤差が約790mに達することを確認した。文言の警告（hint）だけでは
+// 見落とされうるため、地図上に直接誤差の目安を示すことで見落としを防ぐ。
+function setUserLocation(lat, lon, zoom = 15, uncertaintyRadiusM = null) {
   userLocation = { lat, lon };
   if (userMarker) map.removeLayer(userMarker);
+  if (userUncertaintyCircle) {
+    map.removeLayer(userUncertaintyCircle);
+    userUncertaintyCircle = null;
+  }
+  if (uncertaintyRadiusM) {
+    userUncertaintyCircle = L.circle([lat, lon], {
+      radius: uncertaintyRadiusM,
+      color: "#c9871f",
+      fillColor: "#c9871f",
+      fillOpacity: 0.12,
+      weight: 2,
+      dashArray: "6,6",
+    }).addTo(map);
+  }
   userMarker = L.circleMarker([lat, lon], {
     radius: 8,
     color: "#1b4b66",
@@ -1069,6 +1089,13 @@ function inNakatsuBbox(lat, lon) {
 function stripLeadingPostalCode(s) {
   return s.replace(/^〒?\s*[0-9０-９]{3}\s*[-－―ー]?\s*[0-9０-９]{4}\s*/, "");
 }
+
+// 番地レベルのデータが無く大字の代表点にとどまった場合に地図上へ重ねる誤差円の半径。
+// 「下宮永74-2」を商用地図データ（ゼンリン住宅地図ベース、Mapion経由）の座標と
+// 突き合わせたところ、大字の代表点との誤差が実測で約790mに達することを2026-09-26に
+// 確認した。大字の面積・形状は地区ごとに異なり誤差を正確には見積もれないため、
+// この実測値を踏まえた安全側の目安として700mを採用する。
+const ADDRESS_IMPRECISE_RADIUS_M = 700;
 
 // 住所文字列の先頭から、数字・丁目・番地・号・ハイフン類が現れるまでの部分を
 // 大まかな「地区名」とみなす（例："豊田1-1-111"→"豊田"、"四日市"→"四日市"）。
@@ -1346,6 +1373,8 @@ async function searchLocation(query) {
     if (imprecise) {
       hint.classList.add("warn");
       hint.textContent = dict.location_search_imprecise || "";
+      // 誤差円が地図の表示範囲に収まるよう、通常のzoom 15よりわずかに広い範囲で表示する。
+      setUserLocation(hit.lat, hit.lon, 14, ADDRESS_IMPRECISE_RADIUS_M);
     } else {
       hint.classList.remove("warn");
       hint.textContent = "";

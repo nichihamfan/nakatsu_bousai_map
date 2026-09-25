@@ -81,7 +81,7 @@
   "location_search_placeholder": "住所・施設名で検索",
   "location_search_button": "検索",
   "location_search_not_found": "見つかりませんでした。別のキーワードでお試しください",
-  "location_search_imprecise": "番地までは特定できなかったため、地区のおおよその位置を表示しています。正確な位置は「地図で地点を指定」で確認・調整してください",
+  "location_search_imprecise": "番地までは特定できなかったため、地区のおおよその位置を表示しています（点線の円内に実際の地点がある可能性がありますが、円の外側になる場合もあります）。正確な位置は「地図で地点を指定」で確認・調整してください",
   "save_location_placeholder": "名前を付けて保存（例：自宅）",
   "save_location_button": "保存",
   "save_location_delete": "削除",

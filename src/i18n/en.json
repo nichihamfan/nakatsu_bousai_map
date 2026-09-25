@@ -81,7 +81,7 @@
   "location_search_placeholder": "Search by address or place name",
   "location_search_button": "Search",
   "location_search_not_found": "Not found. Please try a different search term",
-  "location_search_imprecise": "Could not pinpoint the exact house number, so an approximate location for the district is shown. Please check and adjust it using \"Pick a point on the map\"",
+  "location_search_imprecise": "Could not pinpoint the exact house number, so an approximate location for the district is shown (the actual spot is usually, but not always, within the dashed circle). Please check and adjust it using \"Pick a point on the map\"",
   "save_location_placeholder": "Save with a name (e.g. Home)",
   "save_location_button": "Save",
   "save_location_delete": "Delete",

@@ -81,7 +81,7 @@
   "location_search_placeholder": "じゅうしょや たてものの なまえで さがす",
   "location_search_button": "さがす",
   "location_search_not_found": "みつかりませんでした。ちがう ことばで やってみてください",
-  "location_search_imprecise": "くわしい ばんちまでは わかりませんでした。ちいきの だいたいの ばしょを ひょうじしています。せいかくな ばしょは「ちずで ちてんを してい」で たしかめてください",
+  "location_search_imprecise": "くわしい ばんちまでは わかりませんでした。ちいきの だいたいの ばしょを ひょうじしています（てんせんの まるの なかに ほんとうの ばしょが ある ことが おおいですが、そとに ある ことも あります）。せいかくな ばしょは「ちずで ちてんを してい」で たしかめてください",
   "save_location_placeholder": "なまえを つけて ほぞん（れい：いえ）",
   "save_location_button": "ほぞん",
   "save_location_delete": "けす",

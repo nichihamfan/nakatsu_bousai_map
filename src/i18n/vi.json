@@ -81,7 +81,7 @@
   "location_search_placeholder": "Tìm theo địa chỉ hoặc tên địa điểm",
   "location_search_button": "Tìm kiếm",
   "location_search_not_found": "Không tìm thấy. Vui lòng thử từ khóa khác",
-  "location_search_imprecise": "Không thể xác định chính xác số nhà, vì vậy vị trí gần đúng của khu vực được hiển thị. Vui lòng kiểm tra và điều chỉnh bằng \"Chọn điểm trên bản đồ\"",
+  "location_search_imprecise": "Không thể xác định chính xác số nhà, vì vậy vị trí gần đúng của khu vực được hiển thị (vị trí thực tế thường nằm trong vòng tròn nét đứt, nhưng không phải lúc nào cũng vậy). Vui lòng kiểm tra và điều chỉnh bằng \"Chọn điểm trên bản đồ\"",
   "save_location_placeholder": "Lưu với tên gọi (vd: Nhà riêng)",
   "save_location_button": "Lưu",
   "save_location_delete": "Xóa",
