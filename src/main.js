@@ -1221,6 +1221,22 @@ function toggleRelief() {
   document.getElementById("reliefLegend").hidden = !reliefVisible;
 }
 
+// 凡例パネルの折りたたみ（2026-09-25追加）。スマートフォンでは地図・避難所一覧など
+// 画面が限られており、凡例が常時展開されたままだと下の要素に重なって隠してしまう
+// ことがユーザー報告で判明した（凡例の絶対配置がレイアウト全体を基準にしていたため、
+// 縦に長いページでは地図の外側に飛び出してしまっていた不具合も併せて修正：
+// 凡例をmap-wrap内に移し、地図の右下を基準に配置するよう変更した）。
+// 折りたたみ時はタイトル行のみを残した小さなバーになる（web調査で確認した
+// モバイル地図UIの一般的な推奨パターンに合わせた設計。作業記録.md参照）。
+function toggleLegend(forceCollapsed) {
+  const legend = document.getElementById("legend");
+  const btn = document.getElementById("legendToggleBtn");
+  const collapsed = forceCollapsed != null ? forceCollapsed : !legend.classList.contains("collapsed");
+  legend.classList.toggle("collapsed", collapsed);
+  btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  btn.querySelector("span").textContent = collapsed ? "▸" : "▾";
+}
+
 function applyTextSize() {
   document.documentElement.style.fontSize = TEXT_SIZE_STEPS[textSizeIndex] + "%";
   localStorage.setItem("nakatsu_bousai_textsize", String(textSizeIndex));
@@ -1270,6 +1286,11 @@ function wireEvents() {
     applyTextSize();
   });
   applyTextSize();
+
+  document.getElementById("legendToggleBtn").addEventListener("click", () => toggleLegend());
+  // スマートフォン幅（.layoutの縦積みへの切替と同じ760pxを基準）では、地図の
+  // 表示領域を優先し、凡例は既定で折りたたんでおく。
+  toggleLegend(window.innerWidth <= 760);
 
   document.querySelectorAll(".type-filter-cb").forEach((cb) => {
     cb.addEventListener("change", () => {
@@ -1326,7 +1347,15 @@ function wireEvents() {
 
   document.getElementById("checklistBtn").addEventListener("click", openChecklist);
   document.getElementById("closeChecklistBtn").addEventListener("click", () => {
+    // チェック状態は各チェックボックスのchangeイベントで既にlocalStorageへ保存済みだが、
+    // 「保存されずに閉じてしまうのでは」という不安なく途中でマップに戻れるよう、
+    // ボタンの文言自体を「一時保存してマップに戻る」に変更した（2026-09-25、ユーザー指摘）。
     document.getElementById("checklistModal").hidden = true;
+  });
+  document.getElementById("clearChecklistBtn").addEventListener("click", () => {
+    checklistChecked = {};
+    localStorage.setItem("nakatsu_bousai_checklist", JSON.stringify(checklistChecked));
+    renderChecklist();
   });
   document.querySelectorAll(".household-cb").forEach((cb) => {
     cb.addEventListener("change", () => {

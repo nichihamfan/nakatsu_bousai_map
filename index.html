@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="public/icons/icon-192.png">
 <meta name="theme-color" content="#1b4b66">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="src/styles.css?v=14">
+<link rel="stylesheet" href="src/styles.css?v=15">
 </head>
 <body>
 
@@ -69,7 +69,38 @@
 </div>
 
 <main class="layout">
-  <div id="map"></div>
+  <div class="map-wrap">
+    <div id="map"></div>
+
+    <div id="legend" class="legend">
+      <div class="legend-header">
+        <h3 id="t-legend">凡例</h3>
+        <button id="legendToggleBtn" class="legend-toggle-btn" type="button" aria-expanded="true" aria-controls="legendBody">
+          <span aria-hidden="true">▾</span>
+        </button>
+      </div>
+      <div class="legend-body" id="legendBody">
+        <div class="legend-row"><span class="dot dot-general"></span><span id="t-shelter_type_general">避難所</span></div>
+        <div class="legend-row"><span class="dot dot-building"></span><span id="t-shelter_type_building">避難ビル</span></div>
+        <div class="legend-row"><span class="dot dot-welfare"></span><span id="t-shelter_type_welfare">福祉避難所</span></div>
+        <div class="legend-row"><span class="dot dot-uncertain"></span><span id="t-geocode_uncertain">この位置は概算です</span></div>
+        <div class="legend-divider"></div>
+        <div class="legend-row"><span class="ring ring-open"></span><span id="t-status_open_f">開設・受入可</span></div>
+        <div class="legend-row"><span class="ring ring-crowded"></span><span id="t-status_crowded_f">混雑（残りわずか）</span></div>
+        <div class="legend-row"><span class="ring ring-full"></span><span id="t-status_full_f">満杯・受入不可</span></div>
+        <div id="reliefLegend" class="relief-legend" hidden>
+          <div class="legend-divider"></div>
+          <div class="relief-legend-title" id="t-relief_legend_title">標高（低地を重視した色分け）</div>
+          <div class="relief-legend-bar"></div>
+          <div class="relief-legend-scale">
+            <span>0m</span><span>5m</span><span>10m</span><span>20m</span><span>50m+</span>
+          </div>
+          <p class="relief-legend-caveat" id="t-relief_caveat">参考情報です。実際の浸水範囲を示すものではありません。</p>
+        </div>
+        <button id="clearRouteBtn" class="clear-route-btn" hidden><span id="t-clear_route">ルートを消去</span></button>
+      </div>
+    </div>
+  </div>
 
   <aside id="sidePanel" class="side-panel">
     <h2 id="t-nearest_shelters">最寄りの避難所</h2>
@@ -139,28 +170,6 @@
   </aside>
 </main>
 
-<div id="legend" class="legend">
-  <h3 id="t-legend">凡例</h3>
-  <div class="legend-row"><span class="dot dot-general"></span><span id="t-shelter_type_general">避難所</span></div>
-  <div class="legend-row"><span class="dot dot-building"></span><span id="t-shelter_type_building">避難ビル</span></div>
-  <div class="legend-row"><span class="dot dot-welfare"></span><span id="t-shelter_type_welfare">福祉避難所</span></div>
-  <div class="legend-row"><span class="dot dot-uncertain"></span><span id="t-geocode_uncertain">この位置は概算です</span></div>
-  <div class="legend-divider"></div>
-  <div class="legend-row"><span class="ring ring-open"></span><span id="t-status_open_f">開設・受入可</span></div>
-  <div class="legend-row"><span class="ring ring-crowded"></span><span id="t-status_crowded_f">混雑（残りわずか）</span></div>
-  <div class="legend-row"><span class="ring ring-full"></span><span id="t-status_full_f">満杯・受入不可</span></div>
-  <div id="reliefLegend" class="relief-legend" hidden>
-    <div class="legend-divider"></div>
-    <div class="relief-legend-title" id="t-relief_legend_title">標高（低地を重視した色分け）</div>
-    <div class="relief-legend-bar"></div>
-    <div class="relief-legend-scale">
-      <span>0m</span><span>5m</span><span>10m</span><span>20m</span><span>50m+</span>
-    </div>
-    <p class="relief-legend-caveat" id="t-relief_caveat">参考情報です。実際の浸水範囲を示すものではありません。</p>
-  </div>
-  <button id="clearRouteBtn" class="clear-route-btn" hidden><span id="t-clear_route">ルートを消去</span></button>
-</div>
-
 <div id="caveatModal" class="modal" role="dialog" aria-modal="true">
   <div class="modal-card">
     <h2 id="t-data_caveat_title">ご利用にあたっての注意</h2>
@@ -192,7 +201,10 @@
   <div class="modal-card checklist-card">
     <div class="checklist-header">
       <h2 id="t-checklist_title">避難用品チェックリスト</h2>
-      <button class="primary-btn" id="closeChecklistBtn"><span id="t-close_f">閉じる</span></button>
+      <div class="checklist-header-actions">
+        <button class="secondary-btn" id="clearChecklistBtn"><span id="t-checklist_clear">クリア</span></button>
+        <button class="primary-btn" id="closeChecklistBtn"><span id="t-checklist_save_close">一時保存してマップに戻る</span></button>
+      </div>
     </div>
 
     <div class="checklist-progress-wrap">
@@ -220,6 +232,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="src/routing.js?v=5"></script>
-<script src="src/main.js?v=18"></script>
+<script src="src/main.js?v=19"></script>
 </body>
 </html>

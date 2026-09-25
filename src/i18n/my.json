@@ -62,6 +62,8 @@
   "routing_hazard_unavoidable": "အချို့နေရာတွင် ရွေးထားသော ဘေးအန္တရာယ်ဒေသကို ဖြတ်သန်းရပါမည် (အခြားလမ်းမရှိပါ)",
   "checklist_button": "ယူဆောင်ရန်ပစ္စည်းစာရင်း",
   "checklist_title": "အရေးပေါ် ယူဆောင်ရန်ပစ္စည်းများ စာရင်း",
+  "checklist_save_close": "သိမ်းပြီး မြေပုံသို့ ပြန်သွားပါ",
+  "checklist_clear": "ရှင်းလင်းပါ",
   "checklist_progress": "ပြင်ဆင်မှုနှုန်း",
   "checklist_household_label": "အိမ်ထောင်စုအခြေအနေ (သက်ဆိုင်သည်များကို ရွေးပါ)",
   "household_infant": "ကလေးငယ်ရှိသည်",

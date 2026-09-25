@@ -62,6 +62,8 @@
   "routing_hazard_unavoidable": "Rute sebagian melewati area bahaya yang dipilih (tidak ada jalan lain)",
   "checklist_button": "Daftar perlengkapan",
   "checklist_title": "Daftar Perlengkapan Darurat",
+  "checklist_save_close": "Simpan dan kembali ke peta",
+  "checklist_clear": "Hapus semua",
   "checklist_progress": "Kesiapan",
   "checklist_household_label": "Kondisi keluarga (pilih semua yang sesuai)",
   "household_infant": "Ada bayi",

@@ -62,6 +62,8 @@
   "routing_hazard_unavoidable": "すこしだけ、あぶない ばしょを とおります（ほかに みちが ありません）",
   "checklist_button": "もっていく もの リスト",
   "checklist_title": "ひなんの とき もっていく もの",
+  "checklist_save_close": "いま の じょうたいを ほぞんして マップに もどる",
+  "checklist_clear": "クリア",
   "checklist_progress": "じゅんびできた りつ",
   "checklist_household_label": "かぞくの ようす（あてはまる ものを えらんでください）",
   "household_infant": "あかちゃんが いる",

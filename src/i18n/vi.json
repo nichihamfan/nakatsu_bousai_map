@@ -62,6 +62,8 @@
   "routing_hazard_unavoidable": "Tuyến đường đi qua một phần khu vực nguy hiểm đã chọn (không có đường vòng)",
   "checklist_button": "Danh sách đồ dùng",
   "checklist_title": "Danh Sách Đồ Dùng Khẩn Cấp",
+  "checklist_save_close": "Lưu và quay lại bản đồ",
+  "checklist_clear": "Xóa hết",
   "checklist_progress": "Mức độ chuẩn bị",
   "checklist_household_label": "Thành phần gia đình (chọn tất cả các mục phù hợp)",
   "household_infant": "Có trẻ sơ sinh",

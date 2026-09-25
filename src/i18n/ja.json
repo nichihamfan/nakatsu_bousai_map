@@ -62,6 +62,8 @@
   "routing_hazard_unavoidable": "一部、選択中のハザードエリアを通過します（迂回不可）",
   "checklist_button": "持出品チェックリスト",
   "checklist_title": "避難用品チェックリスト",
+  "checklist_save_close": "一時保存してマップに戻る",
+  "checklist_clear": "クリア",
   "checklist_progress": "準備率",
   "checklist_household_label": "世帯構成（あてはまるものを選択）",
   "household_infant": "乳幼児がいる",

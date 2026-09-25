@@ -62,6 +62,8 @@
   "routing_hazard_unavoidable": "Route partially passes through the selected hazard area (no way around it)",
   "checklist_button": "Supply checklist",
   "checklist_title": "Emergency Supply Checklist",
+  "checklist_save_close": "Save and return to map",
+  "checklist_clear": "Clear",
   "checklist_progress": "Prepared",
   "checklist_household_label": "Household (select all that apply)",
   "household_infant": "Have an infant",
