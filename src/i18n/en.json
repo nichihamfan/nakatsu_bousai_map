@@ -92,5 +92,8 @@
   "elevation_route_escape_leg": "Route to higher ground",
   "elevation_route_shelter_leg": "From there to the shelter",
   "elevation_route_direct": "Route to shelter",
-  "elevation_route_origin_unknown": "Could not verify your current elevation, so the direct route to the destination is shown instead"
+  "elevation_route_origin_unknown": "Could not verify your current elevation, so the direct route to the destination is shown instead",
+  "elevation_route_escape_not_met": "(Did not reach the specified elevation — showing the highest point reachable)",
+  "elevation_route_shelter_relaxed_accepting": "(No accepting shelter found at this elevation, so showing one regardless of acceptance status)",
+  "elevation_route_shelter_not_met": "(No shelter found at the specified elevation, so showing the highest-elevation shelter reachable)"
 }

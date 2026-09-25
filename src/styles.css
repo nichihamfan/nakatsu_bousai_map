@@ -421,13 +421,19 @@ input:focus-visible,
   text-align:right;
 }
 .elevation-slider-ticks{
-  display:flex;
-  justify-content:space-between;
+  position:relative;
+  height:14px;
   font-size:0.6875rem;
   color:var(--ink-soft);
-  padding:0 2px;
   margin-bottom:6px;
 }
+.elevation-slider-ticks span{
+  position:absolute;
+  transform:translateX(-50%);
+  white-space:nowrap;
+}
+.elevation-slider-ticks span:first-child{transform:translateX(0);}
+.elevation-slider-ticks span:last-child{transform:translateX(-100%);}
 .elevation-slider-caveat{
   margin:0 0 8px;
   font-size:0.6875rem;

@@ -92,5 +92,8 @@
   "elevation_route_escape_leg": "高台までの避難路",
   "elevation_route_shelter_leg": "そこから避難所まで",
   "elevation_route_direct": "避難所までのルート",
-  "elevation_route_origin_unknown": "現在地の標高を確認できなかったため、直接目的地までの経路を表示しています"
+  "elevation_route_origin_unknown": "現在地の標高を確認できなかったため、直接目的地までの経路を表示しています",
+  "elevation_route_escape_not_met": "（指定標高には届かず、到達可能な範囲で最も標高の高い地点です）",
+  "elevation_route_shelter_relaxed_accepting": "（受入可能な避難所が見つからないため、受入状況を問わずに表示しています）",
+  "elevation_route_shelter_not_met": "（指定標高以上の避難所が見つからないため、到達可能な範囲で最も標高の高い避難所を表示しています）"
 }

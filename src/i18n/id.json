@@ -92,5 +92,8 @@
   "elevation_route_escape_leg": "Rute menuju dataran tinggi",
   "elevation_route_shelter_leg": "Dari sana ke tempat evakuasi",
   "elevation_route_direct": "Rute ke tempat evakuasi",
-  "elevation_route_origin_unknown": "Ketinggian lokasi Anda saat ini tidak dapat diverifikasi, sehingga rute langsung ke tujuan ditampilkan"
+  "elevation_route_origin_unknown": "Ketinggian lokasi Anda saat ini tidak dapat diverifikasi, sehingga rute langsung ke tujuan ditampilkan",
+  "elevation_route_escape_not_met": "(Tidak mencapai ketinggian yang ditentukan — menampilkan titik tertinggi yang dapat dijangkau)",
+  "elevation_route_shelter_relaxed_accepting": "(Tidak ditemukan tempat evakuasi yang menerima pada ketinggian ini, sehingga ditampilkan terlepas dari status penerimaan)",
+  "elevation_route_shelter_not_met": "(Tidak ditemukan tempat evakuasi pada ketinggian yang ditentukan, sehingga menampilkan tempat evakuasi dengan ketinggian tertinggi yang dapat dijangkau)"
 }

@@ -92,5 +92,8 @@
   "elevation_route_escape_leg": "たかい ところまでの みち",
   "elevation_route_shelter_leg": "そこから ひなんじょまでの みち",
   "elevation_route_direct": "ひなんじょまでの みち",
-  "elevation_route_origin_unknown": "いま いる ばしょの たかさが わからなかったので、めざす ばしょまでの みちを そのまま ひょうじしています"
+  "elevation_route_origin_unknown": "いま いる ばしょの たかさが わからなかったので、めざす ばしょまでの みちを そのまま ひょうじしています",
+  "elevation_route_escape_not_met": "（せいていした たかさまで とどきませんでした。いける ばしょの なかで いちばん たかい ところです）",
+  "elevation_route_shelter_relaxed_accepting": "（はいれる ひなんじょが みつからなかったので、はいれるかどうかに かんけいなく ひょうじしています）",
+  "elevation_route_shelter_not_met": "（せいていした たかさいじょうの ひなんじょが みつからなかったので、いちばん たかい ひなんじょを ひょうじしています）"
 }

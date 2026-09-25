@@ -243,6 +243,13 @@ class RoutingGraph {
    * Dijkstraはノードを距離の昇順で確定させていくため、この「最初に条件を満たした
    * ノード」が道路距離ベースで最も近い候補であることが保証される。
    * 標高データが無い（null）ノードは条件を満たさないものとして扱う。
+   *
+   * 条件を満たすノードが（道路網の接続範囲内に）一つも無い場合でも、単に失敗を
+   * 返すのではなく、探索範囲内で実際に到達できた最も標高の高いノードを代替として
+   * 返す（2026-09-25、ユーザー指摘を受けて追加：「見つかりませんでした」という
+   * 行き止まりの応答ではなく、可能な範囲で柔軟に対応する）。戻り値の metTarget が
+   * false の場合、返されたノードは指定標高に届いていないことを呼び出し側は
+   * 画面上で正直に示す必要がある（防災アプリでは正確性を優先する方針のため）。
    */
   findNearestNodeAtElevation(originLat, originLon, minElevation, avoidMask = 0) {
     const originSnap = this.nearestEdgeSnap(originLat, originLon);
@@ -258,6 +265,8 @@ class RoutingGraph {
     heap.push(ORIGIN_ID, 0);
 
     let found = null;
+    let fallback = null;
+    let fallbackElev = -Infinity;
     while (!heap.isEmpty()) {
       const { item: u, priority: d } = heap.pop();
       if (visited.has(u)) continue;
@@ -265,9 +274,15 @@ class RoutingGraph {
 
       if (u !== ORIGIN_ID) {
         const elev = this._elevationOf(u);
-        if (elev != null && elev >= minElevation) {
-          found = u;
-          break;
+        if (elev != null) {
+          if (elev >= minElevation) {
+            found = u;
+            break;
+          }
+          if (elev > fallbackElev) {
+            fallback = u;
+            fallbackElev = elev;
+          }
         }
       }
 
@@ -283,13 +298,14 @@ class RoutingGraph {
       }
     }
 
-    if (!found) {
+    const target = found || fallback;
+    if (!target) {
       this._removeVirtualNode(ORIGIN_ID, originSnap);
       return null;
     }
 
     const path = [];
-    let cur = found;
+    let cur = target;
     while (cur !== undefined) {
       path.unshift(cur);
       cur = prev.get(cur);
@@ -304,14 +320,15 @@ class RoutingGraph {
 
     this._removeVirtualNode(ORIGIN_ID, originSnap);
 
-    const [lon, lat, elevation] = this.nodes[found];
+    const [lon, lat, elevation] = this.nodes[target];
     return {
-      nodeId: found,
+      nodeId: target,
       lat,
       lon,
       elevation,
       path: latlngs,
       distanceM: distanceM + originSnap.distToPoint,
+      metTarget: !!found,
     };
   }
 }

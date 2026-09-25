@@ -198,6 +198,63 @@ let pickingElevationPoint = false; // 「マップから標高を指定」のピ
 let elevationRouteLayer = null; // 避難路（高台まで）＋避難所までの2区間を保持するレイヤーグループ
 let elevationSafePointMarker = null; // 避難路の終点（指定標高以上に達した地点）を示すマーカー
 let elevationFilterThreshold = null; // 指定標高以上の避難所のみを表示するフィルタ（null=無効）
+let currentElevationThreshold = 10; // スライダー・地図指定で現在選択中の標高しきい値（m）。スライダーの生位置ではなく実際の値を正とする
+
+// 標高スライダーの非線形スケール（2026-09-25改修）。実用上0〜10m付近の選択頻度が高く
+// 細かい調整が必要な一方、高台側は大まかな指定で十分という指摘を踏まえ、0〜10mは1m刻みで
+// スライダー全体の70%、10〜20mは2m刻みで70〜85%、20〜50mは5m刻みで85〜100%に割り当てる。
+// range input自体は0〜100の「位置」を保持するのみとし、ここで実際の標高値(m)との
+// 相互変換を行う。
+const ELEVATION_SLIDER_ZONES = [
+  { posStart: 0, posEnd: 70, valStart: 0, valEnd: 10, step: 1 },
+  { posStart: 70, posEnd: 85, valStart: 10, valEnd: 20, step: 2 },
+  { posStart: 85, posEnd: 100, valStart: 20, valEnd: 50, step: 5 },
+];
+
+function sliderPositionToElevation(pos) {
+  for (const z of ELEVATION_SLIDER_ZONES) {
+    if (pos <= z.posEnd) {
+      const t = (pos - z.posStart) / (z.posEnd - z.posStart);
+      const raw = z.valStart + t * (z.valEnd - z.valStart);
+      return Math.round(raw / z.step) * z.step;
+    }
+  }
+  return ELEVATION_SLIDER_ZONES[ELEVATION_SLIDER_ZONES.length - 1].valEnd;
+}
+
+function elevationToSliderPosition(value) {
+  const max = ELEVATION_SLIDER_ZONES[ELEVATION_SLIDER_ZONES.length - 1].valEnd;
+  const clamped = Math.max(0, Math.min(max, value));
+  for (const z of ELEVATION_SLIDER_ZONES) {
+    if (clamped <= z.valEnd) {
+      const t = (clamped - z.valStart) / (z.valEnd - z.valStart || 1);
+      return z.posStart + t * (z.posEnd - z.posStart);
+    }
+  }
+  return 100;
+}
+
+// キーボード操作（矢印キー）でスライダーの各ゾーンの刻み幅通りに1段ずつ移動できるよう、
+// 選択可能な標高値を昇順の配列として持っておく（0,1,...,10,12,...,20,25,...,50）。
+const ELEVATION_SLIDER_TICKS = (() => {
+  const ticks = [0];
+  for (const z of ELEVATION_SLIDER_ZONES) {
+    for (let v = z.valStart + z.step; v <= z.valEnd + 1e-9; v += z.step) {
+      ticks.push(Math.round(v * 10) / 10);
+    }
+  }
+  return ticks;
+})();
+
+function stepElevationThreshold(direction) {
+  const ticks = ELEVATION_SLIDER_TICKS;
+  let idx = ticks.indexOf(currentElevationThreshold);
+  if (idx === -1) {
+    idx = ticks.reduce((best, v, i) => (Math.abs(v - currentElevationThreshold) < Math.abs(ticks[best] - currentElevationThreshold) ? i : best), 0);
+  }
+  idx = Math.max(0, Math.min(ticks.length - 1, idx + direction));
+  return ticks[idx];
+}
 
 // 受入状況の表示ラベル・アイコン用キー対応
 const STATUS_KEYS = {
@@ -265,7 +322,7 @@ async function setLanguage(lang) {
   localStorage.setItem("nakatsu_bousai_lang", lang);
   const dict = await loadI18n(lang);
   applyI18n(dict);
-  updateElevationThresholdDisplay(parseFloat(document.getElementById("elevationThresholdSlider").value));
+  updateElevationThresholdDisplay(currentElevationThreshold);
   renderShelterList();
   renderSavedLocations();
   if (checklistData && !document.getElementById("checklistModal").hidden) renderChecklist();
@@ -1029,10 +1086,33 @@ function wireEvents() {
 
   document.getElementById("elevationRouteToggleBtn").addEventListener("click", toggleElevationRoutePanel);
   const elevationSlider = document.getElementById("elevationThresholdSlider");
-  elevationSlider.addEventListener("input", () => updateElevationThresholdDisplay(parseFloat(elevationSlider.value)));
-  elevationSlider.addEventListener("change", () => runElevationRoute(parseFloat(elevationSlider.value)));
+  elevationSlider.addEventListener("input", () => {
+    updateElevationThresholdDisplay(sliderPositionToElevation(parseFloat(elevationSlider.value)));
+  });
+  elevationSlider.addEventListener("change", () => {
+    const elev = sliderPositionToElevation(parseFloat(elevationSlider.value));
+    updateElevationThresholdDisplay(elev);
+    runElevationRoute(elev);
+  });
+  // 矢印キー操作は、ネイティブのstep（つまみの生位置単位）ではなく、ゾーンごとの
+  // 刻み幅（0〜10mは1m、10〜20mは2m、20m以上は5m）で1段ずつ動くようにする。
+  elevationSlider.addEventListener("keydown", (e) => {
+    const dirKeys = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
+    if (e.key in dirKeys) {
+      e.preventDefault();
+      const next = stepElevationThreshold(dirKeys[e.key]);
+      updateElevationThresholdDisplay(next);
+      runElevationRoute(next);
+    } else if (e.key === "Home" || e.key === "End") {
+      e.preventDefault();
+      const ticks = ELEVATION_SLIDER_TICKS;
+      const next = e.key === "Home" ? ticks[0] : ticks[ticks.length - 1];
+      updateElevationThresholdDisplay(next);
+      runElevationRoute(next);
+    }
+  });
   document.getElementById("elevationThresholdApplyBtn").addEventListener("click", () => {
-    runElevationRoute(parseFloat(elevationSlider.value));
+    runElevationRoute(currentElevationThreshold);
   });
   document.getElementById("pickElevationOnMapBtn").addEventListener("click", togglePickElevationPoint);
 
@@ -1245,16 +1325,17 @@ function toggleElevationRoutePanel() {
   btn.setAttribute("aria-pressed", opening ? "true" : "false");
 }
 
-// スライダーの数値表示を更新する。地図で標高を指定した場合はスライダーの可動域
-// （0〜50m、洪水浸水想定区域の実データに基づく範囲）を超えることがあるため、
-// スライダーのつまみ位置は可動域内に収めつつ、実際に検索へ使う値（表示テキスト）は
-// 丸めずそのまま示す。
+// スライダーの数値表示を更新する。currentElevationThresholdを正として保持し、
+// スライダーのつまみ位置はそこから導出する（つまみの生位置は0〜100の非線形スケール
+// であり、標高そのものではないため）。地図で標高を指定した場合、スライダーの可動域
+// （0〜50m、洪水浸水想定区域の実データに基づく範囲）を超えることがあるが、その場合は
+// つまみを可動域の端に留めつつ、実際に検索へ使う値（表示テキスト）は丸めずそのまま示す。
 function updateElevationThresholdDisplay(value) {
+  currentElevationThreshold = value;
   const slider = document.getElementById("elevationThresholdSlider");
   const readout = document.getElementById("elevationThresholdValue");
   const dict = i18nCache[currentLang] || {};
-  const max = Number(slider.max);
-  slider.value = String(Math.min(max, Math.max(Number(slider.min), Math.round(value))));
+  slider.value = String(elevationToSliderPosition(value));
   const label = Number.isInteger(value) ? String(value) : value.toFixed(1);
   readout.textContent = `${label}${dict.elevation_route_unit_suffix || ""}`;
 }
@@ -1280,31 +1361,46 @@ async function handleElevationPointPicked(lat, lon) {
 // 指定標高以上の避難所のうち、直線距離が近い上位候補について実際の道路距離を比較し、
 // 最短のものを採用する（直線距離のみで選ぶfindNearestAccepting()よりも精度を高めた設計。
 // 全候補について経路計算すると重いため、直線距離上位5件に絞って計算する）。
+//
+// 条件（受入可否・標高）に完全一致する避難所が1件も無い場合でも「見つかりませんでした」
+// という行き止まりの応答にはせず、段階的に条件を緩めて代替を探す（2026-09-25、ユーザー
+// 指摘を受けて追加）。受入状況データはサンプル18件のみで大半の避難所が「未確認」扱いに
+// なるため、受入可能フィルタを有効にしたまま標高条件も課すと候補が0件になりやすい、という
+// 実際に確認された問題への対処。種別フィルタ（避難所／避難ビル／福祉避難所）に一致する
+// 避難所が1件も無い場合のみ、最終的にnullを返す。
 function bestQualifyingShelterRoute(fromLat, fromLon, minElevation, avoidMask) {
-  const qualifying = shelters.filter(
-    (s) =>
-      s.lat != null &&
-      s.lon != null &&
-      activeTypeFilter.has(s.type) &&
-      (!acceptingOnly || isAccepting(s)) &&
-      s.elevation_m != null &&
-      s.elevation_m >= minElevation
-  );
-  if (qualifying.length === 0) return null;
+  const typeMatched = shelters.filter((s) => s.lat != null && s.lon != null && activeTypeFilter.has(s.type));
+  if (typeMatched.length === 0) return null;
 
-  const topCandidates = qualifying
-    .map((s) => ({ ...s, straightDist: haversineKm(fromLat, fromLon, s.lat, s.lon) }))
-    .sort((a, b) => a.straightDist - b.straightDist)
-    .slice(0, 5);
+  // 優先度順に候補プールを用意する: ①受入可否＋標高の両方を満たす ②標高のみ満たす
+  // （受入状況が未確認でも表示） ③種別のみ満たす（標高が最も高い避難所を代替として提示）
+  const pools = [
+    { shelters: typeMatched.filter((s) => (!acceptingOnly || isAccepting(s)) && s.elevation_m != null && s.elevation_m >= minElevation), relaxedAccepting: false, relaxedElevation: false },
+    { shelters: typeMatched.filter((s) => s.elevation_m != null && s.elevation_m >= minElevation), relaxedAccepting: true, relaxedElevation: false },
+    { shelters: typeMatched, relaxedAccepting: true, relaxedElevation: true },
+  ];
 
-  let best = null;
-  for (const cand of topCandidates) {
-    const result = routingGraph.route(fromLat, fromLon, cand.lat, cand.lon, avoidMask);
-    if (result && (!best || result.distanceM < best.result.distanceM)) {
-      best = { shelter: cand, result };
+  for (const pool of pools) {
+    if (pool.shelters.length === 0) continue;
+    const topCandidates = pool.relaxedElevation
+      ? [...pool.shelters].sort((a, b) => (b.elevation_m ?? -Infinity) - (a.elevation_m ?? -Infinity)).slice(0, 5)
+      : pool.shelters
+          .map((s) => ({ ...s, straightDist: haversineKm(fromLat, fromLon, s.lat, s.lon) }))
+          .sort((a, b) => a.straightDist - b.straightDist)
+          .slice(0, 5);
+
+    let best = null;
+    for (const cand of topCandidates) {
+      const result = routingGraph.route(fromLat, fromLon, cand.lat, cand.lon, avoidMask);
+      if (result && (!best || result.distanceM < best.result.distanceM)) {
+        best = { shelter: cand, result };
+      }
+    }
+    if (best) {
+      return { ...best, metTarget: !pool.relaxedAccepting && !pool.relaxedElevation, relaxedAccepting: pool.relaxedAccepting, relaxedElevation: pool.relaxedElevation };
     }
   }
-  return best;
+  return null;
 }
 
 async function runElevationRoute(minElevation) {
@@ -1348,31 +1444,45 @@ async function runElevationRoute(minElevation) {
   }
 
   drawElevationRoute(escapeResult, best.result, minElevation);
+  const resultText = elevationRouteResultText(escapeResult, best, originElev == null);
   hint.classList.remove("error");
-  hint.textContent =
-    originElev == null
-      ? `${dict.elevation_route_origin_unknown || ""} ／ ${elevationRouteResultText(escapeResult, best.result)}`
-      : elevationRouteResultText(escapeResult, best.result);
+  hint.textContent = resultText;
 
-  elevationFilterThreshold = minElevation;
+  // 実際に表示している避難所が指定標高に届いていない場合、一覧・マーカーの絞り込みを
+  // 掛けると当の避難所自体が非表示になってしまうため、その場合のみフィルタを掛けない
+  // （受入可否のみ緩和した場合は、標高条件自体は満たしているのでフィルタして問題ない）。
+  elevationFilterThreshold = best.relaxedElevation ? null : minElevation;
   renderShelterMarkers();
   renderShelterList();
 
   showShelterDetail(best.shelter);
   const infoEl = document.getElementById("detailRouteInfo");
   infoEl.hidden = false;
-  infoEl.textContent = elevationRouteResultText(escapeResult, best.result);
+  infoEl.textContent = resultText;
 }
 
-function elevationRouteResultText(escapeResult, shelterResult) {
+function elevationRouteResultText(escapeResult, best, originUnknown) {
   const dict = i18nCache[currentLang] || {};
+  const shelterResult = best.result;
   const kmShelter = (shelterResult.distanceM / 1000).toFixed(2);
+
+  let text;
   if (escapeResult) {
     const kmEscape = (escapeResult.distanceM / 1000).toFixed(2);
     const elevText = escapeResult.elevation != null ? escapeResult.elevation.toFixed(1) + "m" : "?";
-    return `${dict.elevation_route_escape_leg || ""}: ${kmEscape} km（${elevText}）／ ${dict.elevation_route_shelter_leg || ""}: ${kmShelter} km`;
+    text = `${dict.elevation_route_escape_leg || ""}: ${kmEscape} km（${elevText}）／ ${dict.elevation_route_shelter_leg || ""}: ${kmShelter} km`;
+  } else {
+    text = `${dict.elevation_route_direct || ""}: ${kmShelter} km`;
   }
-  return `${dict.elevation_route_direct || ""}: ${kmShelter} km`;
+
+  const notes = [];
+  if (originUnknown) notes.push(dict.elevation_route_origin_unknown || "");
+  if (escapeResult && !escapeResult.metTarget) notes.push(dict.elevation_route_escape_not_met || "");
+  if (best.relaxedElevation) notes.push(dict.elevation_route_shelter_not_met || "");
+  else if (best.relaxedAccepting) notes.push(dict.elevation_route_shelter_relaxed_accepting || "");
+  if (notes.length) text += ` ／ ${notes.join(" ")}`;
+
+  return text;
 }
 
 function drawElevationRoute(escapeResult, shelterResult, minElevation) {

@@ -92,5 +92,8 @@
   "elevation_route_escape_leg": "Đường đến khu đất cao",
   "elevation_route_shelter_leg": "Từ đó đến nơi trú ẩn",
   "elevation_route_direct": "Tuyến đường đến nơi trú ẩn",
-  "elevation_route_origin_unknown": "Không thể xác minh độ cao vị trí hiện tại của bạn, vì vậy tuyến đường trực tiếp đến điểm đến được hiển thị"
+  "elevation_route_origin_unknown": "Không thể xác minh độ cao vị trí hiện tại của bạn, vì vậy tuyến đường trực tiếp đến điểm đến được hiển thị",
+  "elevation_route_escape_not_met": "(Chưa đạt độ cao đã chỉ định — đang hiển thị điểm cao nhất có thể đến được)",
+  "elevation_route_shelter_relaxed_accepting": "(Không tìm thấy nơi trú ẩn đang tiếp nhận ở độ cao này, nên hiển thị bất kể tình trạng tiếp nhận)",
+  "elevation_route_shelter_not_met": "(Không tìm thấy nơi trú ẩn ở độ cao đã chỉ định, nên hiển thị nơi trú ẩn có độ cao cao nhất có thể đến được)"
 }
