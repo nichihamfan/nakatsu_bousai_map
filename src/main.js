@@ -179,6 +179,8 @@ let shelters = [];
 let hazardLayers = {};
 let reliefLayer = null;
 let reliefVisible = false;
+let earthquakeLayer = null;
+let earthquakeVisible = false;
 let map;
 let userMarker;
 let shelterMarkersLayer;
@@ -352,6 +354,32 @@ function initMap() {
     maxNativeZoom: 14,
     minZoom: 5,
     opacity: 0.65,
+  });
+
+  // 地震の揺れやすさ表示（2026-09-26追加）。防災科学技術研究所(NIED)のJ-SHIS
+  // 確率論的地震動予測地図を、標準的なWMSレイヤーとしてそのまま重畳表示する。
+  // 洪水・土砂災害等の既存4種と異なり、地震の揺れは市内全域が対象となる連続的な
+  // 確率分布であり、特定エリアを「回避する」性質の危険区域ではないため、経路探索の
+  // 回避対象（HAZARD_BITS）には含めず、標高表示と同様の独立した参考レイヤーとして扱う。
+  // 属性T30_I55_PDは「今後30年以内に震度6弱以上となる確率」の5階調表示（NIED公式配色）。
+  // ニュース等で報道される「地震・津波・高潮・洪水・内水・土砂災害・ため池・火山」の
+  // 8種のうち、内水・ため池は中津市・大分県ともにベクター形式の公開データが存在せず
+  // （国土地理院ハザードマップポータルの掲載状況一覧で確認、PDF地図のみ市が公開）、
+  // 火山は中津市を対象区域に含む火山防災マップが存在しない（大分県内では別府市・
+  // 由布市・宇佐市・日出町を対象とする鶴見岳・伽藍岳のみ）ため、今回は地震のみを
+  // 追加した。詳細な調査結果は作業記録.mdを参照。
+  // J-SHISのWMSはEPSG:3857（Leafletの既定）でのリクエストに対して
+  // 500エラーを返す（EPSG:4326では正常に画像を返すことをfetch()で直接確認済み）。
+  // そのためcrs: L.CRS.EPSG4326を指定し、タイルごとのリクエストをEPSG:4326の
+  // 緯度経度範囲で送らせる。
+  earthquakeLayer = L.tileLayer.wms("https://www.j-shis.bosai.go.jp/map/wms/pshm/Y2020", {
+    layers: "P-Y2020-MAP-AVR-TTL_MTTL-T30_I55_PD",
+    format: "image/png",
+    transparent: true,
+    version: "1.1.1",
+    crs: L.CRS.EPSG4326,
+    opacity: 0.55,
+    attribution: '<a href="https://www.j-shis.bosai.go.jp/" target="_blank">防災科学技術研究所 J-SHIS</a>',
   });
 
   shelterMarkersLayer = L.layerGroup().addTo(map);
@@ -1065,6 +1093,93 @@ function hasDigits(s) {
   return /[0-9０-９]/.test(s || "");
 }
 
+// Geolonia住所データ（デジタル庁「アドレス・ベース・レジストリ」を元にGeolonia社が
+// 整備・無料公開している住所データ。CC BY 4.0、API利用に登録不要）を用いた、
+// 地番（番地）レベルの住所検索（2026-09-25追加）。地理院API・Nominatimでは
+// 大字・地区レベルの代表点までしか特定できない住所であっても、こちらのデータには
+// 個々の地番（例："下宮永74番2"）ごとの座標が登録されている場合がある。
+// ただし整備状況は地番によってまちまちで（中津市全体で地番の約36%に座標データあり、
+// 実機調査で確認）、見つからない場合は従来通りの大字レベル概算＋警告にフォールバックする。
+// データは市区町村ごとの静的ファイルとしてHTTPで公開されており、Range指定で必要な
+// 地区の部分だけを取得できるため、サーバーを介さずクライアント側だけで完結する
+// （本アプリの「サーバーレス」方針に合致する）。詳細は作業記録.md参照。
+const GEOLONIA_API_BASE = "https://japanese-addresses-v2.geoloniamaps.com/api/ja";
+const GEOLONIA_PREF = "大分県";
+const GEOLONIA_CITY = "中津市";
+let geoloniaDistrictListCache = null;
+
+async function loadGeoloniaDistrictList() {
+  if (geoloniaDistrictListCache) return geoloniaDistrictListCache;
+  try {
+    const url = `${GEOLONIA_API_BASE}/${encodeURIComponent(GEOLONIA_PREF)}/${encodeURIComponent(GEOLONIA_CITY)}.json`;
+    const res = await fetch(url);
+    const data = await res.json();
+    geoloniaDistrictListCache = data.data || [];
+  } catch (e) {
+    console.warn("[geolonia] district list fetch failed", e);
+    geoloniaDistrictListCache = [];
+  }
+  return geoloniaDistrictListCache;
+}
+
+// Geoloniaデータの大字・丁目・小字表記は"大字"の有無や表記がまちまちなため
+// （例："大字下宮永"／"蛭子町"）、比較前に正規化する。
+function geoloniaDistrictFullName(d) {
+  return normalizeDistrictForMatch((d.oaza_cho || "") + (d.chome || "") + (d.koaza || ""));
+}
+
+function findGeoloniaDistrict(districts, queryDistrict) {
+  const normQuery = normalizeDistrictForMatch(queryDistrict);
+  let best = null;
+  let bestLen = 0;
+  for (const d of districts) {
+    const full = geoloniaDistrictFullName(d);
+    if (!full) continue;
+    if ((full.includes(normQuery) || normQuery.includes(full)) && full.length > bestLen) {
+      best = d;
+      bestLen = full.length;
+    }
+  }
+  return best;
+}
+
+// 大字名より後ろに続く番地部分（例："74－2"）を、地番マスターの
+// prc_num1/prc_num2/prc_num3に相当する最大3つの数値に分解する。
+function extractParcelNumbers(afterCity) {
+  const normalized = afterCity.replace(/[－―ー]/g, "-").replace(/番地?の?/g, "-");
+  const m = normalized.match(/(\d+)(?:-(\d+))?(?:-(\d+))?\s*$/);
+  if (!m) return null;
+  return [m[1], m[2] || "", m[3] || ""];
+}
+
+async function tryGeoloniaParcelLookup(queryDistrict, afterCity) {
+  const parcelNums = extractParcelNumbers(afterCity);
+  if (!parcelNums) return null;
+  const districts = await loadGeoloniaDistrictList();
+  const district = findGeoloniaDistrict(districts, queryDistrict);
+  const range = district && district.csv_ranges && district.csv_ranges["地番"];
+  if (!range) return null;
+
+  try {
+    const url = `${GEOLONIA_API_BASE}/${encodeURIComponent(GEOLONIA_PREF)}/${encodeURIComponent(GEOLONIA_CITY)}-地番.txt`;
+    const res = await fetch(url, {
+      headers: { Range: `bytes=${range.start}-${range.start + range.length - 1}` },
+    });
+    const text = await res.text();
+    const lines = text.split("\n").slice(2); // 先頭2行（地区名ヘッダー・カラム名）を除く
+    for (const line of lines) {
+      const [p1, p2, p3, lng, lat] = line.split(",");
+      if (p1 === parcelNums[0] && (p2 || "") === parcelNums[1] && (p3 || "") === parcelNums[2] && lat && lng) {
+        return { lat: parseFloat(lat), lon: parseFloat(lng) };
+      }
+    }
+    return null;
+  } catch (e) {
+    console.warn("[geolonia] parcel fetch failed", e);
+    return null;
+  }
+}
+
 // 国土地理院（GSI）の住所検索API。無料・登録不要。Nominatim（OpenStreetMap）は
 // 「豊田1丁目1番地111」のような日本の住所表記（丁目・番地、全角/半角ハイフン等の
 // 表記ゆれを含む）にほぼ対応できないことが実機検証で判明した（同じ場所を指す
@@ -1203,6 +1318,21 @@ async function searchLocation(query) {
       }
     }
 
+    // 地理院API・Nominatimでは大字レベルの概算にとどまった場合、デジタル庁の
+    // アドレス・ベース・レジストリを元にしたGeoloniaの地番データでも解決を試みる
+    // （地番ごとの座標が個別に整備されている場合のみ見つかる。全ての地番を
+    // 網羅しているわけではないため、見つからない場合は従来通り警告を表示する）。
+    if (imprecise) {
+      const refined = await tryGeoloniaParcelLookup(queryDistrict, afterCity);
+      if (myRequestSeq !== searchRequestSeq) return;
+      if (refined) {
+        hit.lat = refined.lat;
+        hit.lon = refined.lon;
+        setUserLocation(hit.lat, hit.lon);
+        imprecise = false;
+      }
+    }
+
     if (imprecise) {
       hint.classList.add("warn");
       hint.textContent = dict.location_search_imprecise || "";
@@ -1268,6 +1398,22 @@ function toggleRelief() {
   document.getElementById("reliefLegend").hidden = !reliefVisible;
 }
 
+// 地震の揺れやすさ表示のON/OFF切替。今後30年以内に震度6弱以上となる確率
+// （防災科学技術研究所J-SHISの確率論的地震動予測地図）をWMSレイヤーとして重畳表示する。
+// あくまで将来の予測確率であり、この範囲以外で地震が起きないという意味ではない旨を
+// UI側で明示する（他の参考レイヤーと同様の位置づけ）。
+function toggleEarthquake() {
+  earthquakeVisible = !earthquakeVisible;
+  if (earthquakeVisible) {
+    earthquakeLayer.addTo(map);
+  } else {
+    map.removeLayer(earthquakeLayer);
+  }
+  const btn = document.getElementById("earthquakeToggleBtn");
+  btn.setAttribute("aria-pressed", earthquakeVisible ? "true" : "false");
+  document.getElementById("earthquakeLegend").hidden = !earthquakeVisible;
+}
+
 // 凡例パネルの折りたたみ（2026-09-25追加）。スマートフォンでは地図・避難所一覧など
 // 画面が限られており、凡例が常時展開されたままだと下の要素に重なって隠してしまう
 // ことがユーザー報告で判明した（凡例の絶対配置がレイアウト全体を基準にしていたため、
@@ -1300,6 +1446,7 @@ function wireEvents() {
   });
 
   document.getElementById("reliefToggleBtn").addEventListener("click", toggleRelief);
+  document.getElementById("earthquakeToggleBtn").addEventListener("click", toggleEarthquake);
 
   document.getElementById("locateBtn").addEventListener("click", locateUser);
 

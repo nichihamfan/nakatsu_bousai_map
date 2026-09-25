@@ -633,6 +633,13 @@ input:focus-visible,
   color:var(--ink-soft);
   margin-top:2px;
 }
+.earthquake-legend-bar{
+  height:10px;
+  border-radius:4px;
+  /* J-SHIS（防災科学技術研究所）の公式配色（GetLegendGraphicで確認）に合わせた5階調 */
+  background:linear-gradient(to right,#fbe6a4,#fff53f,#ffa500,#ff2800,#c8007d);
+  border:1px solid var(--line);
+}
 .relief-legend-caveat{
   font-size:0.625rem;
   color:var(--warn);
