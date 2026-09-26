@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="public/icons/icon-192.png">
 <meta name="theme-color" content="#1b4b66">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="src/styles.css?v=17">
+<link rel="stylesheet" href="src/styles.css?v=18">
 </head>
 <body>
 
@@ -68,6 +68,9 @@
   </button>
   <button id="checklistBtn" class="checklist-btn">
     <span aria-hidden="true">🎒</span> <span id="t-checklist_button">持出品チェックリスト</span>
+  </button>
+  <button id="emergencyCardBtn" class="checklist-btn">
+    <span aria-hidden="true">🆘</span> <span id="t-emergency_card_button">防災カード</span>
   </button>
 </div>
 
@@ -238,12 +241,75 @@
   </div>
 </div>
 
+<div id="emergencyCardModal" class="modal" hidden>
+  <div class="modal-card emergency-card-card">
+    <div class="checklist-header">
+      <h2 id="t-emergency_card_title">防災カード</h2>
+      <div class="checklist-header-actions">
+        <button class="secondary-btn" id="emergencyCardEditBtn"><span id="t-emergency_card_edit">編集</span></button>
+        <button class="primary-btn" id="closeEmergencyCardBtn"><span id="t-emergency_card_close">マップに戻る</span></button>
+      </div>
+    </div>
+
+    <p class="emergency-card-privacy" id="t-emergency_card_privacy_note">この情報はお使いの端末にのみ保存され、外部には送信されません。</p>
+
+    <div id="emergencyCardView" class="emergency-card-view">
+      <p id="emergencyCardEmptyHint" class="hint" hidden><span id="t-emergency_card_empty_hint">まだ入力されていません。「編集」から入力してください</span></p>
+      <dl id="emergencyCardViewList" class="emergency-card-view-list"></dl>
+    </div>
+
+    <form id="emergencyCardForm" class="emergency-card-form" hidden>
+      <label class="ec-field">
+        <span id="t-emergency_card_name_label">氏名</span>
+        <input type="text" id="ecName" maxlength="40">
+      </label>
+      <label class="ec-field">
+        <span id="t-emergency_card_blood_type_label">血液型</span>
+        <select id="ecBloodType">
+          <option value="" id="t-emergency_card_blood_unknown">不明</option>
+          <option value="A" id="t-emergency_card_blood_a">A型</option>
+          <option value="B" id="t-emergency_card_blood_b">B型</option>
+          <option value="O" id="t-emergency_card_blood_o">O型</option>
+          <option value="AB" id="t-emergency_card_blood_ab">AB型</option>
+        </select>
+      </label>
+      <label class="ec-field">
+        <span id="t-emergency_card_medical_notes_label">持病・アレルギー・服薬中の薬</span>
+        <textarea id="ecMedicalNotes" rows="3" maxlength="300" data-i18n-placeholder="emergency_card_medical_notes_placeholder"></textarea>
+      </label>
+      <label class="ec-field">
+        <span id="t-emergency_card_clinic_label">かかりつけ医療機関</span>
+        <input type="text" id="ecClinic" maxlength="80">
+      </label>
+      <label class="ec-field">
+        <span id="t-emergency_card_contact1_label">緊急連絡先 1</span>
+        <input type="text" id="ecContact1" maxlength="80" data-i18n-placeholder="emergency_card_contact_placeholder">
+      </label>
+      <label class="ec-field">
+        <span id="t-emergency_card_contact2_label">緊急連絡先 2</span>
+        <input type="text" id="ecContact2" maxlength="80" data-i18n-placeholder="emergency_card_contact_placeholder">
+      </label>
+      <label class="ec-field">
+        <span id="t-emergency_card_contact3_label">緊急連絡先 3</span>
+        <input type="text" id="ecContact3" maxlength="80" data-i18n-placeholder="emergency_card_contact_placeholder">
+      </label>
+      <label class="ec-field">
+        <span id="t-emergency_card_meeting_note_label">集合場所・その他メモ</span>
+        <textarea id="ecMeetingNote" rows="3" maxlength="300" data-i18n-placeholder="emergency_card_meeting_note_placeholder"></textarea>
+      </label>
+      <div class="modal-actions">
+        <button type="submit" class="primary-btn"><span id="t-emergency_card_save">保存</span></button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <footer class="app-footer">
   <span id="t-footer_note">収集データ出典：中津市防災ポータルサイト／国土数値情報（国土交通省）</span>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="src/routing.js?v=5"></script>
-<script src="src/main.js?v=26"></script>
+<script src="src/main.js?v=27"></script>
 </body>
 </html>

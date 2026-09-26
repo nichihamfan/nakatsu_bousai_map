@@ -789,6 +789,45 @@ input:focus-visible,
 #showRouteBtn{background:var(--accent);}
 #showRouteBtn:disabled{background:var(--surface-2);color:var(--ink-soft);cursor:not-allowed;}
 
+/* 防災カード（緊急連絡カード） */
+.emergency-card-card{max-width:480px;max-height:88vh;display:flex;flex-direction:column;}
+.emergency-card-privacy{
+  font-size:0.6875rem;
+  color:var(--ink-soft);
+  background:var(--surface-2);
+  border-radius:8px;
+  padding:6px 10px;
+  margin:0 0 12px;
+}
+.emergency-card-view{overflow-y:auto;flex:1;}
+.emergency-card-view-list{margin:0;}
+.emergency-card-view-list dt{
+  font-size:0.6875rem;
+  font-weight:700;
+  color:var(--primary);
+  margin:10px 0 2px;
+}
+.emergency-card-view-list dt:first-child{margin-top:0;}
+.emergency-card-view-list dd{
+  margin:0 0 4px;
+  font-size:0.9375rem;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+.emergency-card-form[hidden]{display:none;}
+.emergency-card-form{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;}
+.ec-field{display:flex;flex-direction:column;gap:4px;font-size:0.75rem;font-weight:700;color:var(--primary);}
+.ec-field input,.ec-field select,.ec-field textarea{
+  font:inherit;
+  font-weight:400;
+  color:var(--ink);
+  padding:7px 9px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  resize:vertical;
+}
+
 .app-footer{
   flex:none;
   font-size:0.65625rem;

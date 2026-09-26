@@ -1651,6 +1651,16 @@ function wireEvents() {
     localStorage.setItem("nakatsu_bousai_checklist", JSON.stringify(checklistChecked));
     renderChecklist();
   });
+
+  document.getElementById("emergencyCardBtn").addEventListener("click", openEmergencyCard);
+  document.getElementById("emergencyCardEditBtn").addEventListener("click", openEmergencyCardEdit);
+  document.getElementById("closeEmergencyCardBtn").addEventListener("click", () => {
+    document.getElementById("emergencyCardModal").hidden = true;
+  });
+  document.getElementById("emergencyCardForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    saveEmergencyCard();
+  });
   document.querySelectorAll(".household-cb").forEach((cb) => {
     cb.addEventListener("change", () => {
       if (cb.checked) checklistHousehold.add(cb.value);
@@ -2234,6 +2244,88 @@ function openChecklist() {
   });
   renderChecklist();
   document.getElementById("checklistModal").hidden = false;
+}
+
+// 防災カード（緊急連絡カード）機能（2026-09-26追加）。避難後、通信ができない状況でも
+// 端末内に保存された自分の情報をその場で確認・提示できるようにする、オフライン専用の
+// 機能として実装した（web調査で、多くの消防本部・自治体が配布する「緊急連絡カード」の
+// 標準的な項目（氏名・血液型・持病/アレルギー/服薬中の薬・かかりつけ医療機関・緊急連絡先・
+// 集合場所）を参考にした）。GPS・住所検索等とは異なり外部通信を一切行わず、
+// localStorageへの読み書きのみで完結するため、電波が無い避難所でもそのまま使える。
+// 個人の医療情報を含むため、サーバーへは絶対に送信しない（保存はこの端末内のみ）。
+let emergencyCardData = JSON.parse(localStorage.getItem("nakatsu_bousai_emergency_card") || "{}");
+
+const EMERGENCY_CARD_FIELDS = [
+  { key: "name", labelKey: "emergency_card_name_label" },
+  { key: "bloodType", labelKey: "emergency_card_blood_type_label", isBloodType: true },
+  { key: "medicalNotes", labelKey: "emergency_card_medical_notes_label" },
+  { key: "clinic", labelKey: "emergency_card_clinic_label" },
+  { key: "contact1", labelKey: "emergency_card_contact1_label" },
+  { key: "contact2", labelKey: "emergency_card_contact2_label" },
+  { key: "contact3", labelKey: "emergency_card_contact3_label" },
+  { key: "meetingNote", labelKey: "emergency_card_meeting_note_label" },
+];
+
+function bloodTypeLabel(dict, value) {
+  const map = { A: "emergency_card_blood_a", B: "emergency_card_blood_b", O: "emergency_card_blood_o", AB: "emergency_card_blood_ab" };
+  return dict[map[value]] || dict.emergency_card_blood_unknown || "";
+}
+
+function renderEmergencyCardView() {
+  const dict = i18nCache[currentLang] || {};
+  const list = document.getElementById("emergencyCardViewList");
+  const emptyHint = document.getElementById("emergencyCardEmptyHint");
+  list.innerHTML = "";
+
+  const hasAnyValue = EMERGENCY_CARD_FIELDS.some((f) => (emergencyCardData[f.key] || "").trim());
+  emptyHint.hidden = hasAnyValue;
+
+  EMERGENCY_CARD_FIELDS.forEach((f) => {
+    const raw = (emergencyCardData[f.key] || "").trim();
+    if (!raw && !f.isBloodType) return;
+    if (f.isBloodType && !raw) return;
+    const dt = document.createElement("dt");
+    dt.textContent = dict[f.labelKey] || f.key;
+    const dd = document.createElement("dd");
+    dd.textContent = f.isBloodType ? bloodTypeLabel(dict, raw) : raw;
+    list.appendChild(dt);
+    list.appendChild(dd);
+  });
+}
+
+function openEmergencyCard() {
+  renderEmergencyCardView();
+  document.getElementById("emergencyCardView").hidden = false;
+  document.getElementById("emergencyCardForm").hidden = true;
+  document.getElementById("emergencyCardModal").hidden = false;
+}
+
+function openEmergencyCardEdit() {
+  document.getElementById("ecName").value = emergencyCardData.name || "";
+  document.getElementById("ecBloodType").value = emergencyCardData.bloodType || "";
+  document.getElementById("ecMedicalNotes").value = emergencyCardData.medicalNotes || "";
+  document.getElementById("ecClinic").value = emergencyCardData.clinic || "";
+  document.getElementById("ecContact1").value = emergencyCardData.contact1 || "";
+  document.getElementById("ecContact2").value = emergencyCardData.contact2 || "";
+  document.getElementById("ecContact3").value = emergencyCardData.contact3 || "";
+  document.getElementById("ecMeetingNote").value = emergencyCardData.meetingNote || "";
+  document.getElementById("emergencyCardView").hidden = true;
+  document.getElementById("emergencyCardForm").hidden = false;
+}
+
+function saveEmergencyCard() {
+  emergencyCardData = {
+    name: document.getElementById("ecName").value.trim(),
+    bloodType: document.getElementById("ecBloodType").value,
+    medicalNotes: document.getElementById("ecMedicalNotes").value.trim(),
+    clinic: document.getElementById("ecClinic").value.trim(),
+    contact1: document.getElementById("ecContact1").value.trim(),
+    contact2: document.getElementById("ecContact2").value.trim(),
+    contact3: document.getElementById("ecContact3").value.trim(),
+    meetingNote: document.getElementById("ecMeetingNote").value.trim(),
+  };
+  localStorage.setItem("nakatsu_bousai_emergency_card", JSON.stringify(emergencyCardData));
+  openEmergencyCard();
 }
 
 async function main() {
