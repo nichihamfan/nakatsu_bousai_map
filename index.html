@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="public/icons/icon-192.png">
 <meta name="theme-color" content="#1b4b66">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="src/styles.css?v=18">
+<link rel="stylesheet" href="src/styles.css?v=19">
 </head>
 <body>
 
@@ -118,7 +118,7 @@
   </div>
 
   <aside id="sidePanel" class="side-panel">
-    <h2 id="t-nearest_shelters">最寄りの避難所</h2>
+    <h2 id="t-location_input_title">所在地入力</h2>
     <div class="location-search">
       <input type="text" id="locationSearchInput" data-i18n-placeholder="location_search_placeholder" placeholder="住所・施設名で検索">
       <button id="locationSearchBtn" type="button"><span id="t-location_search_button">検索</span></button>
@@ -181,6 +181,7 @@
       <p class="hint" id="elevationRouteHint"></p>
     </div>
     <p class="hint" id="locateHint" data-i18n="locating"></p>
+    <h2 id="t-nearest_shelters" class="shelter-list-title">最寄りの避難所</h2>
     <ul id="shelterList" class="shelter-list"></ul>
   </aside>
 </main>
@@ -310,6 +311,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="src/routing.js?v=5"></script>
-<script src="src/main.js?v=27"></script>
+<script src="src/main.js?v=28"></script>
 </body>
 </html>

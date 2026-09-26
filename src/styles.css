@@ -245,6 +245,7 @@ input:focus-visible,
   overflow-y:auto;
 }
 .side-panel h2{font-size:0.875rem;margin:0 0 8px;color:var(--primary);}
+.shelter-list-title{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);}
 .hint{font-size:0.75rem;color:var(--ink-soft);}
 .hint.error{color:var(--block);font-weight:600;}
 .hint.warn{color:var(--warn);font-weight:600;}

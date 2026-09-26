@@ -1134,6 +1134,22 @@ function hasDigits(s) {
   return /[0-9０-９]/.test(s || "");
 }
 
+// 住所検索の各データ源（地理院API・Nominatim・Geolonia・法務省データ）へのfetch()には
+// 元々タイムアウトが設定されておらず、外部サーバー側が応答しない（ハングする）場合に
+// 「読み込み中…」のまま無期限に固まってしまう不具合があった（2026-09-26、ユーザー報告を
+// 受けて発見。実機調査で地理院APIへの接続がまさにこの状態になっていることを確認した）。
+// AbortControllerで一定時間後に強制的に打ち切ることで、遅い・応答しないデータ源があっても
+// 他のフォールバック（Nominatim等）に進めるようにする。
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Geolonia住所データ（デジタル庁「アドレス・ベース・レジストリ」を元にGeolonia社が
 // 整備・無料公開している住所データ。CC BY 4.0、API利用に登録不要）を用いた、
 // 地番（番地）レベルの住所検索（2026-09-25追加）。地理院API・Nominatimでは
@@ -1153,7 +1169,7 @@ async function loadGeoloniaDistrictList() {
   if (geoloniaDistrictListCache) return geoloniaDistrictListCache;
   try {
     const url = `${GEOLONIA_API_BASE}/${encodeURIComponent(GEOLONIA_PREF)}/${encodeURIComponent(GEOLONIA_CITY)}.json`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     const data = await res.json();
     geoloniaDistrictListCache = data.data || [];
   } catch (e) {
@@ -1214,7 +1230,7 @@ let mojParcelLookupCache = null;
 async function loadMojParcelLookup() {
   if (mojParcelLookupCache) return mojParcelLookupCache;
   try {
-    const res = await fetch("public/data/moj_parcel_centroids.json");
+    const res = await fetchWithTimeout("public/data/moj_parcel_centroids.json");
     mojParcelLookupCache = await res.json();
   } catch (e) {
     console.warn("[moj parcel] lookup fetch failed", e);
@@ -1258,7 +1274,7 @@ async function tryGeoloniaParcelLookup(queryDistrict, afterCity) {
 
   try {
     const url = `${GEOLONIA_API_BASE}/${encodeURIComponent(GEOLONIA_PREF)}/${encodeURIComponent(GEOLONIA_CITY)}-地番.txt`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: { Range: `bytes=${range.start}-${range.start + range.length - 1}` },
     });
     const text = await res.text();
@@ -1289,7 +1305,7 @@ const GSI_ADDRESS_SEARCH_URL = "https://msearch.gsi.go.jp/address-search/Address
 async function tryGsiAddressSearch(query, queryDistrict) {
   try {
     const url = `${GSI_ADDRESS_SEARCH_URL}?q=${encodeURIComponent(query)}`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetchWithTimeout(url, { headers: { Accept: "application/json" } });
     const results = await res.json();
     if (!Array.isArray(results)) return null;
     for (const r of results) {
@@ -1313,7 +1329,7 @@ async function tryNominatimSearch(query) {
     // 実機検証で判明した。limitを増やして複数候補を取得し、同点上位の中から中津市中心部に
     // 最も近いものを選ぶことで、この揺れを吸収する。
     const url = `${NOMINATIM_URL}?format=json&limit=5&bounded=1&viewbox=${NOMINATIM_VIEWBOX}&countrycodes=jp&q=${encodeURIComponent(query)}`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetchWithTimeout(url, { headers: { Accept: "application/json" } });
     const results = await res.json();
     if (!results || results.length === 0) return null;
 

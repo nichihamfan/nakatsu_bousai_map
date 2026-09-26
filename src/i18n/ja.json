@@ -22,6 +22,7 @@
   "shelters": "避難所",
   "shelter_search": "避難所を探す",
   "nearest_shelters": "最寄りの避難所",
+  "location_input_title": "所在地入力",
   "capacity": "収容人数",
   "capacity_unit": "人",
   "unknown": "不明",
