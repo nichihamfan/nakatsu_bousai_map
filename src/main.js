@@ -1200,6 +1200,26 @@ function findGeoloniaDistrict(districts, queryDistrict) {
   return best;
 }
 
+// 地理院API・Nominatimの双方が応答しない（ハングやサーバー障害）、あるいは番地付きの
+// 表記をどちらも解釈できない場合に備えた、大字レベルの最終フォールバック（2026-09-26追加）。
+// ユーザーから「下宮永74-2」で検索すると『見つかりませんでした』になってしまうとの
+// 報告を受け調査したところ、地理院APIが無期限にハングする状態が続いており、
+// Nominatimも番地付きの表記には対応できないため、結果として「大字の代表点も含めて
+// 何も表示されない」という、fetchWithTimeout導入前より悪化した状態になっていたことが
+// 判明した。Geoloniaの地区一覧データ（japanese-addresses-v2.geoloniamaps.com、
+// 地理院APIとは別ホスト）には大字ごとの代表点座標が含まれており、地理院APIの障害時
+// でも独立して利用できることを実機で確認した。この代表点は地理院APIが大字レベルで
+// 返す代表点とほぼ同一（下宮永で実測誤差1m未満）であり、性質として同等である。
+async function tryGeoloniaDistrictFallback(queryDistrict) {
+  if (!queryDistrict || queryDistrict.length < 2) return null;
+  const districts = await loadGeoloniaDistrictList();
+  const district = findGeoloniaDistrict(districts, queryDistrict);
+  if (!district || !Array.isArray(district.point)) return null;
+  const [lon, lat] = district.point;
+  if (typeof lat !== "number" || typeof lon !== "number") return null;
+  return { lat, lon };
+}
+
 // 大字名より後ろに続く番地部分（例："74－2"）を、地番マスターの
 // prc_num1/prc_num2/prc_num3に相当する最大3つの数値に分解する。
 function extractParcelNumbers(afterCity) {
@@ -1322,7 +1342,7 @@ async function tryGsiAddressSearch(query, queryDistrict) {
   }
 }
 
-async function tryNominatimSearch(query) {
+async function tryNominatimSearch(query, queryDistrict) {
   try {
     // limit=1だと、importance（重要度）が同点の候補が複数ある場合にNominatim側の
     // 順序が不安定になり、意図しない候補（例：本庁舎ではなく山間部の支所）が返ることが
@@ -1346,6 +1366,19 @@ async function tryNominatimSearch(query) {
       const name = c.display_name || "";
       if (!name.includes("中津市")) return false;
       if (/(豊前市|宇佐市|玖珠町|日田市|築上郡)/.test(name)) return false;
+      // 2026-09-26追加：queryDistrictが渡された場合、地区名がdisplay_nameのどこにも
+      // 現れない結果は除外する。地理院APIが無期限にハングした際の代替として住所検索の
+      // 経路でNominatimを使ったところ、「下宮永」で検索したにもかかわらず全く無関係な
+      // 「下池永」の施設（中津市民病院）がヒットしてしまうことを実機で発見した。
+      // Nominatimの自由文検索は語の一部一致・関連度スコアで結果を返すため、
+      // バウンディングボックスや市区町村名の一致だけでは地区名の対応までは保証されない。
+      // 施設名検索の場合も、施設名自体に検索語が含まれるのが通常のため、この判定は
+      // 住所・施設名どちらの検索にも支障なく働く。
+      if (queryDistrict && queryDistrict.length >= 2) {
+        const normDistrict = normalizeDistrictForMatch(queryDistrict);
+        const normName = normalizeDistrictForMatch(name);
+        if (!normName.includes(normDistrict)) return false;
+      }
       return true;
     });
     if (validResults.length === 0) return null;
@@ -1395,11 +1428,23 @@ async function searchLocation(query) {
     const gsiQuery = q.includes("中津市") ? q : "中津市" + q;
     const afterCity = gsiQuery.slice(gsiQuery.indexOf("中津市") + "中津市".length);
     const queryDistrict = extractDistrictName(afterCity);
-    const hit = (await tryGsiAddressSearch(gsiQuery, queryDistrict)) || (await tryNominatimSearch(q + " 中津市"));
+    let hit = (await tryGsiAddressSearch(gsiQuery, queryDistrict)) || (await tryNominatimSearch(q + " 中津市", queryDistrict));
 
     // 自分より後に開始された検索がある場合、その結果で既に上書きされているはずなので
     // このリクエストの結果は反映しない（競合状態の防止）。
     if (myRequestSeq !== searchRequestSeq) return;
+
+    // 地理院API・Nominatimのどちらも結果を返さない場合（地理院APIの障害・ハング、
+    // または番地付き表記をNominatimが解釈できない場合等）、Geoloniaの大字代表点への
+    // 最終フォールバックを試みる（2026-09-26追加）。地理院API・Nominatimと異なる
+    // ホストのため、地理院API側に障害があっても独立して利用できる。番地までは
+    // 反映されない代表点であるため、その旨は下記のimprecise判定で検出し警告する。
+    let impreciseFromFallback = false;
+    if (!hit) {
+      hit = await tryGeoloniaDistrictFallback(queryDistrict);
+      if (myRequestSeq !== searchRequestSeq) return;
+      if (hit) impreciseFromFallback = hasDigits(afterCity);
+    }
 
     if (!hit) {
       hint.classList.remove("warn");
@@ -1419,11 +1464,14 @@ async function searchLocation(query) {
     // より確実な方法として、「地区名だけで検索した場合と同じ座標に落ち着いていないか」を
     // 実際にもう一度検索して比較する（座標が変わらない＝番地は結果に反映されておらず、
     // 大字・地区レベルの代表点へのフォールバックであると判断できる）。
-    let imprecise = false;
-    if (hasDigits(afterCity) && queryDistrict && queryDistrict.length >= 2 && queryDistrict !== afterCity) {
+    // Geolonia代表点へのフォールバックで既にhitを得た場合は、その時点で大字レベルの
+    // 概算であることが確定しているため、この再検索（地理院API等への追加の問い合わせ）は
+    // 省略する。
+    let imprecise = impreciseFromFallback;
+    if (!impreciseFromFallback && hasDigits(afterCity) && queryDistrict && queryDistrict.length >= 2 && queryDistrict !== afterCity) {
       const districtOnlyQuery = "中津市" + queryDistrict;
       const districtHit =
-        (await tryGsiAddressSearch(districtOnlyQuery, queryDistrict)) || (await tryNominatimSearch(queryDistrict + " 中津市"));
+        (await tryGsiAddressSearch(districtOnlyQuery, queryDistrict)) || (await tryNominatimSearch(queryDistrict + " 中津市", queryDistrict));
       if (myRequestSeq !== searchRequestSeq) return;
       if (districtHit && Math.abs(districtHit.lat - hit.lat) < 1e-6 && Math.abs(districtHit.lon - hit.lon) < 1e-6) {
         imprecise = true;
